@@ -18,12 +18,17 @@ scanLogic.setRuntimeOS("server");
 const PORT = process.env.PORT || 3001;
 const SCAN_INTERVAL_MS = 60 * 60 * 1000; // 1時間おき
 const RESULTS_FILE = path.join(__dirname, "latest-scan.json");
+const HISTORY_FILE = path.join(__dirname, "scan-history.json");
+const MAX_HISTORY = 24; // 1時間おきなら24件で丸1日分
 
 let latestScan = {
   updatedAt: null,
   scanning: false,
   items: [],
 };
+
+// scanHistory[0]が最新、古いものは配列の後ろへ。MAX_HISTORY件を超えたら古い順に捨てる
+let scanHistory = [];
 
 // 再起動してもRender上のディスクが消えてなければ前回結果を復元する(ベストエフォート)
 try {
@@ -35,6 +40,17 @@ try {
   }
 } catch (e) {
   console.warn("前回結果の読み込みに失敗:", e.message);
+}
+
+try {
+  if (fs.existsSync(HISTORY_FILE)) {
+    const savedHistory = JSON.parse(fs.readFileSync(HISTORY_FILE, "utf8"));
+    if (Array.isArray(savedHistory)) {
+      scanHistory = savedHistory;
+    }
+  }
+} catch (e) {
+  console.warn("履歴の読み込みに失敗:", e.message);
 }
 
 // アプリのタブ定義と完全に同じ条件で「🚀タートル速攻」「👑超本命」「✫Buy💚2」「✫Buy💚3」に
@@ -79,13 +95,21 @@ async function runScheduledScan() {
       },
     });
     const items = pickTurtleHonmeiBuy23(results);
+    const updatedAt = new Date().toISOString();
     latestScan = {
-      updatedAt: new Date().toISOString(),
+      updatedAt,
       scanning: false,
       items,
     };
+
+    scanHistory.unshift({ updatedAt, items });
+    if (scanHistory.length > MAX_HISTORY) {
+      scanHistory = scanHistory.slice(0, MAX_HISTORY);
+    }
+
     try {
       fs.writeFileSync(RESULTS_FILE, JSON.stringify(latestScan));
+      fs.writeFileSync(HISTORY_FILE, JSON.stringify(scanHistory));
     } catch (e) {
       console.warn("結果の保存に失敗:", e.message);
     }
@@ -122,6 +146,13 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === "/latest-scan") {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify(latestScan));
+    return;
+  }
+
+  // 過去の自動スキャン結果一覧(新しい順、最大MAX_HISTORY件)
+  if (url.pathname === "/scan-history") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ history: scanHistory }));
     return;
   }
 
