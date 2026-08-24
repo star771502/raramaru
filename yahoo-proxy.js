@@ -53,10 +53,10 @@ try {
   console.warn("履歴の読み込みに失敗:", e.message);
 }
 
-// アプリのタブ定義と完全に同じ条件で「🚀タートル速攻」「👑超本命」「✫Buy💚2」「✫Buy💚3」に
-// 該当するものだけ抜き出す(タブ側のfilter条件を変えたらここも合わせて直すこと)
+// アプリのタブ定義と完全に同じ条件で株のcombo系タブに該当するものだけ抜き出す
+// (タブ側のfilter条件を変えたらここも合わせて直すこと)
 function pickTurtleHonmeiBuy23(results) {
-  return results
+  const stockPicks = results
     .filter((x) => x.kind === "stock" && x.direction !== "fail")
     .filter((x) => typeof x.price === "number" && x.price <= 500)
     .filter(
@@ -81,6 +81,35 @@ function pickTurtleHonmeiBuy23(results) {
       buy2: Boolean(x.direction === "buy" && x.inBullOB && x.heartBuy), // ✫Buy💚2
       buy3: Boolean(x.direction === "buy" && x.inBullOB && x.heartBuy && x.turtleBuy), // ✫Buy💚3
     }));
+
+  // FX(為替・暗号資産)・指数向けcombo(🚀タートル速攻FX/👑超本命FXとその売り版)
+  const fxPicks = results
+    .filter(
+      (x) =>
+        (x.kind === "forex" || x.kind === "crypto" || x.kind === "index") &&
+        x.direction !== "fail"
+    )
+    .filter(
+      (x) =>
+        x.rocketTurtleComboFx === true ||
+        x.superComboFx === true ||
+        x.rocketTurtleComboSellFx === true ||
+        x.superComboSellFx === true
+    )
+    .map((x) => ({
+      kind: x.kind,
+      code: x.code,
+      name: x.name,
+      price: x.price,
+      score: x.score,
+      direction: x.direction,
+      rocketTurtleComboFx: Boolean(x.rocketTurtleComboFx), // 🚀タートル速攻FX
+      superComboFx: Boolean(x.superComboFx), // 👑超本命FX
+      rocketTurtleComboSellFx: Boolean(x.rocketTurtleComboSellFx), // 🚀タートル速攻FX売り
+      superComboSellFx: Boolean(x.superComboSellFx), // 👑超本命FX売り
+    }));
+
+  return [...stockPicks, ...fxPicks];
 }
 
 async function runScheduledScan() {
