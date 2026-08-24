@@ -63,6 +63,8 @@ function pickTurtleHonmeiBuy23(results) {
       (x) =>
         x.rocketTurtleCombo === true ||
         x.superCombo === true ||
+        x.megaBuyBreakout === true ||
+        x.megaSellBreakout === true ||
         (x.direction === "buy" && x.inBullOB === true && x.heartBuy === true)
     )
     .map((x) => ({
@@ -74,6 +76,8 @@ function pickTurtleHonmeiBuy23(results) {
       direction: x.direction,
       rocketTurtleCombo: Boolean(x.rocketTurtleCombo), // 🚀タートル速攻
       superCombo: Boolean(x.superCombo), // 👑超本命
+      megaBuyBreakout: Boolean(x.megaBuyBreakout), // 💥爆上げ本命
+      megaSellBreakout: Boolean(x.megaSellBreakout), // 💥暴落本命
       buy2: Boolean(x.direction === "buy" && x.inBullOB && x.heartBuy), // ✫Buy💚2
       buy3: Boolean(x.direction === "buy" && x.inBullOB && x.heartBuy && x.turtleBuy), // ✫Buy💚3
     }));

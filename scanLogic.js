@@ -2348,6 +2348,14 @@ const TARGETS = RAW_TARGETS.trim()
 const TABS = [
   "🚀タートル速攻",
   "👑超本命",
+  "🚀タートル速攻売り",
+  "👑超本命売り",
+  "🚀タートル速攻FX",
+  "🚀タートル速攻FX売り",
+  "👑超本命FX",
+  "👑超本命FX売り",
+  "💥爆上げ本命",
+  "💥暴落本命",
   "🎯一目フィボタートル",
   "✫Buy💚2",
   "✫Buy💚3",
@@ -2814,6 +2822,26 @@ function detectTurtleSellDenied(rows) {
   const i = n - 1;
   const prev = n - 2;
   return closes[i] > denyHigh && closes[prev] <= denyHigh;
+}
+
+// detectTurtleSellDeniedのミラー(買い側の否定)。売りcombo(超本命の売り版)の追加条件用
+function detectTurtleBuyDenied(rows) {
+  const n = rows.length;
+  if (n < 78) return false;
+  let denyLow = null;
+  for (let k = 1; k <= 60; k += 1) {
+    const end = n - 1 - k;
+    if (end < 77) break;
+    if (detectTurtleBuy(rows.slice(0, end + 1))) {
+      denyLow = rows[end].low;
+      break;
+    }
+  }
+  if (denyLow == null) return false;
+  const closes = rows.map((r) => r.close);
+  const i = n - 1;
+  const prev = n - 2;
+  return closes[i] < denyLow && closes[prev] >= denyLow;
 }
 
 // 指定した検出関数が、直近window本以内のどこかでtrueだったか(Pineのta.barssince<=window相当)
@@ -4311,6 +4339,94 @@ function findRocketBuy(rows, lookbackBars = 1) {
   };
 }
 
+// findRocketBuyのミラー(売り版)：買い→横ばい→買い否定→M▽→★Sell💗 の流れを検出
+function findRocketSell(rows, lookbackBars = 1) {
+  if (!Array.isArray(rows) || rows.length < 40) return null;
+
+  const searchWindowBars = 90;
+
+  const closes = rows.map((r) => r.close);
+  const pos = calcUTBotPosition(rows, 2.0, 10);
+  const rsi = calcRSISeriesWilder(closes, 14);
+  const { hist } = calcMACDSeries(closes, 12, 26, 9);
+  const n = rows.length;
+  const startIdx = Math.max(2, n - searchWindowBars);
+
+  let buyKind = 0;
+  let buyLow = null;
+  let buyIdx = null;
+  let buyDenied = true;
+
+  let lastDenial = null;
+  let lastMacdDownAfterDenial = null;
+
+  for (let i = startIdx; i < n; i += 1) {
+    const buySignalNow = pos[i] === 1 && pos[i - 1] === -1;
+
+    const rsiTurnUpNow =
+      Number.isFinite(rsi[i]) &&
+      Number.isFinite(rsi[i - 1]) &&
+      Number.isFinite(rsi[i - 2]) &&
+      rsi[i] > rsi[i - 1] &&
+      rsi[i - 1] < rsi[i - 2] &&
+      rsi[i - 1] <= 50;
+
+    const strongBuyNow =
+      pos[i] === 1 && (isRsiRecover30(rsi, i) || rsiTurnUpNow);
+
+    const macdUpNow = pos[i] === 1 && isHistTurnUp(hist, i);
+
+    if (buySignalNow) {
+      buyKind = 1;
+      buyLow = rows[i].low;
+      buyIdx = i;
+      buyDenied = false;
+    }
+    if (strongBuyNow) {
+      buyKind = 2;
+      buyLow = rows[i].low;
+      buyIdx = i;
+      buyDenied = false;
+    }
+    if (macdUpNow) {
+      buyKind = 3;
+      buyLow = rows[i].low;
+      buyIdx = i;
+      buyDenied = false;
+    }
+
+    if (
+      buyKind > 0 &&
+      !buyDenied &&
+      buyLow !== null &&
+      rows[i].close < buyLow &&
+      pos[i] !== 1
+    ) {
+      lastDenial = {
+        idx: i,
+        kind: buyKind,
+        sideways: isSidewaysRange(rows, buyIdx, i),
+        date: rows[i].date,
+      };
+      buyDenied = true;
+      lastMacdDownAfterDenial = null;
+    }
+
+    if (lastDenial && i > lastDenial.idx && isHistTurnDown(hist, i)) {
+      lastMacdDownAfterDenial = i;
+    }
+  }
+
+  if (!lastDenial || lastMacdDownAfterDenial === null) return null;
+  if (n - 1 - lastMacdDownAfterDenial > lookbackBars) return null;
+
+  return {
+    denialDate: lastDenial.date,
+    kind: lastDenial.kind,
+    sideways: lastDenial.sideways,
+  };
+}
+
 // =====================
 // リボン収縮→BUY🚀（Corys Buy and Sellスクリプトの忠実移植）
 // EMA(高値,9〜51を3刻み)の15本リボンが収縮している状態から、
@@ -4748,6 +4864,19 @@ const barsSinceRecentBuy = (positions) => {
     if (
       positions[i] === 1 &&
       positions[i - 1] === -1
+    ) {
+      return positions.length - 1 - i;
+    }
+  }
+
+  return Infinity;
+};
+
+const barsSinceRecentSell = (positions) => {
+  for (let i = positions.length - 1; i >= 1; i -= 1) {
+    if (
+      positions[i] === -1 &&
+      positions[i - 1] === 1
     ) {
       return positions.length - 1 - i;
     }
@@ -5250,6 +5379,35 @@ const rocketTurtleCombo = rocketRecentForCombo && turtleOBRecent;
 const turtleSellDeniedRecent = target.kind === "stock" && wasTrueRecently(rows, detectTurtleSellDenied, 4);
 const superCombo = rocketTurtleCombo && turtleSellDeniedRecent;
 
+// ↓↓↓ 以下、rocketTurtleCombo/superComboの売り版・FX/指数版。上記ロック済みの2行は一切変更していない、追加フィールドのみ ↓↓↓
+
+// 🚀タートル速攻(売り): ロケットセル＋タートル売り+Be-OBの組み合わせ(ロング版のミラー)
+const rocketSellRecentForCombo = target.kind === "stock" ? Boolean(findRocketSell(rows, 4)) : false;
+const turtleOBRecentSell = target.kind === "stock" && wasTrueRecently(rows, detectTurtleSell, 4) && inBearOB;
+const rocketTurtleComboSell = rocketSellRecentForCombo && turtleOBRecentSell;
+
+// 👑超本命(売り): 3コンボ(売り)に加えて、直近でタートル買いが否定された場合
+const turtleBuyDeniedRecent = target.kind === "stock" && wasTrueRecently(rows, detectTurtleBuyDenied, 4);
+const superComboSell = rocketTurtleComboSell && turtleBuyDeniedRecent;
+
+// ==== FX/暗号資産/指数版のcombo (turtle+rocket+OB方式) ====
+// stock版(上記のrocketTurtleCombo/superCombo/rocketTurtleComboSell/superComboSell)とは完全に別フィールド。
+// target.kindの制限を外しただけで、判定ロジック自体はstock版と同一。
+const fxIdxKind = target.kind === "forex" || target.kind === "crypto" || target.kind === "index";
+const fxIdxOB = fxIdxKind ? detectOrderBlock(rows) : { inBullOB: false, inBearOB: false };
+
+const fxIdxRocketBuyRecent = fxIdxKind ? Boolean(findRocketBuy(rows, 4)) : false;
+const fxIdxTurtleBuyOBRecent = fxIdxKind && wasTrueRecently(rows, detectTurtleBuy, 4) && fxIdxOB.inBullOB;
+const rocketTurtleComboFx = fxIdxRocketBuyRecent && fxIdxTurtleBuyOBRecent;
+const fxIdxTurtleSellDeniedRecent = fxIdxKind && wasTrueRecently(rows, detectTurtleSellDenied, 4);
+const superComboFx = rocketTurtleComboFx && fxIdxTurtleSellDeniedRecent;
+
+const fxIdxRocketSellRecent = fxIdxKind ? Boolean(findRocketSell(rows, 4)) : false;
+const fxIdxTurtleSellOBRecent = fxIdxKind && wasTrueRecently(rows, detectTurtleSell, 4) && fxIdxOB.inBearOB;
+const rocketTurtleComboSellFx = fxIdxRocketSellRecent && fxIdxTurtleSellOBRecent;
+const fxIdxTurtleBuyDeniedRecent = fxIdxKind && wasTrueRecently(rows, detectTurtleBuyDenied, 4);
+const superComboSellFx = rocketTurtleComboSellFx && fxIdxTurtleBuyDeniedRecent;
+
 // 雲が薄い(センコウスパンA/B幅3%未満)＋雲の上/下にいるかどうか
 const thinCloudInfo = target.kind === "stock" ? detectThinCloud(rows) : { isThin: false, widthPct: null, aboveCloud: false, belowCloud: false };
 const thinCloudBuy = thinCloudInfo.isThin && thinCloudInfo.aboveCloud;
@@ -5320,6 +5478,30 @@ const heartSell =
   lastDayIndex >= 0 &&
   dayPos[lastDayIndex] === -1 &&
   (recentStrongSellTrigger || rsiSellNowStrong);
+
+// 💥爆上げ本命/💥暴落本命(Pineインジケーター版と同じ考え方の移植):
+// タートル否定・★Buy💚(heartBuy)・UTフリップ・ロケット・本命(rocketTurtleCombo)・超本命(superCombo)のうち
+// 3つ以上が直近(4本以内)で点灯していて、かつBu-OB/Be-OBの中にいる時に爆発的な動きが起きやすい、という経験則の検出
+const utBuyRecent = target.kind === "stock" && lastDayIndex >= 1 && barsSinceRecentBuy(dayPos) <= 4;
+const utSellRecent = target.kind === "stock" && lastDayIndex >= 1 && barsSinceRecentSell(dayPos) <= 4;
+
+const megaBuyCount =
+  (turtleSellDeniedRecent ? 1 : 0) +
+  (heartBuy ? 1 : 0) +
+  (utBuyRecent ? 1 : 0) +
+  (rocketRecentForCombo ? 1 : 0) +
+  (rocketTurtleCombo ? 1 : 0) +
+  (superCombo ? 1 : 0);
+const megaBuyBreakout = target.kind === "stock" && megaBuyCount >= 3 && inBullOB;
+
+const megaSellCount =
+  (turtleBuyDeniedRecent ? 1 : 0) +
+  (heartSell ? 1 : 0) +
+  (utSellRecent ? 1 : 0) +
+  (rocketSellRecentForCombo ? 1 : 0) +
+  (rocketTurtleComboSell ? 1 : 0) +
+  (superComboSell ? 1 : 0);
+const megaSellBreakout = target.kind === "stock" && megaSellCount >= 3 && inBearOB;
 
 // キター/キタキタ〜判定: タートル＋Bu-OB(Be-OB)が4Hと日足の両方で揃ってることが大前提。
 // そこにheartBuy(★Buy💚相当)とCorys相当(リボン収縮)がいくつ追加で揃うかで、1つでキター、2つでキタキタ〜
@@ -5827,6 +6009,14 @@ if (fxTripleBottomInfo) {
     turtleMultiTF,
     rocketTurtleCombo,
     superCombo,
+    rocketTurtleComboSell,
+    superComboSell,
+    rocketTurtleComboFx,
+    superComboFx,
+    rocketTurtleComboSellFx,
+    superComboSellFx,
+    megaBuyBreakout,
+    megaSellBreakout,
     thinCloudBuy,
     thinCloudSell,
     ichiFibTurtleCombo,
