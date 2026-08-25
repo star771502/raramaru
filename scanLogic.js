@@ -2359,8 +2359,6 @@ const TABS = [
   "👑超本命FX",
   "👑超本命FX売り",
   "🐉ドラゴン複合",
-  "🟢とんぼ",
-  "🔴とうば",
 ];
 const DAILY_SCAN_TASK = "project-sh-daily-scan";
 
@@ -4965,7 +4963,7 @@ const weeklyRsi = calcRSI(weeklyCloses, 14);
 const weeklyRsi90 = weeklyRsi !== null && weeklyRsi >= 90;
 const monthlyClosesForRsi = monthlyRows.map((r) => r.close);
 const monthlyRsi = calcRSI(monthlyClosesForRsi, 14);
-const monthlyRsi90 = monthlyRsi !== null && monthlyRsi >= 90;
+const monthlyRsi80 = monthlyRsi !== null && monthlyRsi >= 80;
 
 // ロック: ①週足MACD△→②週足RSI△→③Buy、のバックテストで有効性確認済みの必須条件。
 // ユーザー指示により、この条件(定義・要否とも)は無断で変更しないこと。
@@ -5545,7 +5543,7 @@ const touba = detectTouba(rows);
 const sankuFumiage = detectSankuFumiage(rows);
 
 // 株ドラゴンだと1個ずつしかフィルターを組み合わせられないため、
-// 「25日線乖離プラス+75日線乖離プラス+貸借銘柄+三空踏み上げ+月足RSI90以上」を全部同時に満たす銘柄だけを出す複合タブ
+// 「25日線乖離プラス+75日線乖離プラス+貸借銘柄+三空踏み上げ+月足RSI80以上」を全部同時に満たす銘柄だけを出す複合タブ
 const kabudragonCombo =
   target.kind === "stock" &&
   typeof dev25 === "number" &&
@@ -5554,7 +5552,7 @@ const kabudragonCombo =
   dev75 > 0 &&
   isLendingStock(target.code) &&
   sankuFumiage &&
-  monthlyRsi90;
+  monthlyRsi80;
 
 // 💥爆上げ本命/💥暴落本命(くみちゃんの経験則v1に戻した): タートル否定・★Buy💚(heartBuy)・UTフリップ・
 // ロケット・本命(rocketTurtleCombo)・超本命(superCombo)のうち3つ以上が直近(4本以内)で点灯していて、
@@ -6144,7 +6142,7 @@ if (fxTripleBottomInfo) {
     tonbo,
     touba,
     sankuFumiage,
-    monthlyRsi90,
+    monthlyRsi80,
     kabudragonCombo,
     thinCloudBuy,
     thinCloudSell,
