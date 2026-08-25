@@ -2346,26 +2346,16 @@ const TARGETS = RAW_TARGETS.trim()
   .filter((target) => target.kind !== "stock" || target.code !== "");
 
 const TABS = [
-  "🚀タートル速攻",
+  "💥爆上げ本命",
+  "💥暴落本命",
   "👑超本命",
-  "🚀タートル速攻売り",
   "👑超本命売り",
+  "🚀タートル速攻",
+  "🚀タートル速攻売り",
   "🚀タートル速攻FX",
   "🚀タートル速攻FX売り",
   "👑超本命FX",
   "👑超本命FX売り",
-  "💥爆上げ本命",
-  "💥暴落本命",
-  "🎯一目フィボタートル",
-  "✫Buy💚2",
-  "✫Buy💚3",
-  "75☆乖離🩷S",
-  "✫Sell❤",
-  "初動候補",
-  "FX買い",
-  "FX売り",
-  "指数買い",
-  "指数売り",
 ];
 const DAILY_SCAN_TASK = "project-sh-daily-scan";
 
@@ -2853,6 +2843,32 @@ function wasTrueRecently(rows, detectFn, window = 3) {
     if (detectFn(rows.slice(0, end))) return true;
   }
   return false;
+}
+
+// その週の月曜日(0時)を返す。週の第1営業日かどうかの判定に使う
+function mondayOfWeek(dateStr) {
+  const d = new Date(dateStr);
+  d.setHours(0, 0, 0, 0);
+  const day = d.getDay();
+  const diff = (day === 0 ? -6 : 1) - day;
+  d.setDate(d.getDate() + diff);
+  return d.getTime();
+}
+
+// 最新行が「週の1本目(前の営業日と週が変わっている)」かどうか
+function isFirstTradingDayOfWeek(rows) {
+  const n = rows.length;
+  if (n < 2) return false;
+  return mondayOfWeek(rows[n - 1].date) !== mondayOfWeek(rows[n - 2].date);
+}
+
+// 最新行が「月の1本目(前の営業日と月が変わっている)」かどうか
+function isFirstTradingDayOfMonth(rows) {
+  const n = rows.length;
+  if (n < 2) return false;
+  const cur = new Date(rows[n - 1].date);
+  const prev = new Date(rows[n - 2].date);
+  return cur.getFullYear() !== prev.getFullYear() || cur.getMonth() !== prev.getMonth();
 }
 
 // 任意の時間足のrowsに対して「タートル買い(直近4本以内)＋heartBuy相当＋Bu-OB」が
@@ -5479,29 +5495,32 @@ const heartSell =
   dayPos[lastDayIndex] === -1 &&
   (recentStrongSellTrigger || rsiSellNowStrong);
 
-// 💥爆上げ本命/💥暴落本命(Pineインジケーター版と同じ考え方の移植):
-// タートル否定・★Buy💚(heartBuy)・UTフリップ・ロケット・本命(rocketTurtleCombo)・超本命(superCombo)のうち
-// 3つ以上が直近(4本以内)で点灯していて、かつBu-OB/Be-OBの中にいる時に爆発的な動きが起きやすい、という経験則の検出
-const utBuyRecent = target.kind === "stock" && lastDayIndex >= 1 && barsSinceRecentBuy(dayPos) <= 4;
-const utSellRecent = target.kind === "stock" && lastDayIndex >= 1 && barsSinceRecentSell(dayPos) <= 4;
+// 💥爆上げ本命/💥暴落本命(くみちゃんの経験則v2): 週足・月足それぞれで本命/超本命(ロケット+タートル+OB)が
+// 成立していて(大きい波の途中であることの確認)、かつ日足で本命・超本命・★Buy💚のどれかが今日出た時に成立とする
+const megaComboTfAllowed = isFirstTradingDayOfWeek(rows) || isFirstTradingDayOfMonth(rows);
 
-const megaBuyCount =
-  (turtleSellDeniedRecent ? 1 : 0) +
-  (heartBuy ? 1 : 0) +
-  (utBuyRecent ? 1 : 0) +
-  (rocketRecentForCombo ? 1 : 0) +
-  (rocketTurtleCombo ? 1 : 0) +
-  (superCombo ? 1 : 0);
-const megaBuyBreakout = target.kind === "stock" && megaBuyCount >= 3 && inBullOB;
+function f_weeklyMonthlyComboBuy(tfRows) {
+  if (target.kind !== "stock" || !Array.isArray(tfRows) || tfRows.length < 40) return false;
+  const rocketRecent = Boolean(findRocketBuy(tfRows, 4));
+  const turtleObRecent = wasTrueRecently(tfRows, detectTurtleBuy, 4) && detectOrderBlock(tfRows).inBullOB;
+  return rocketRecent && turtleObRecent;
+}
+function f_weeklyMonthlyComboSell(tfRows) {
+  if (target.kind !== "stock" || !Array.isArray(tfRows) || tfRows.length < 40) return false;
+  const rocketRecent = Boolean(findRocketSell(tfRows, 4));
+  const turtleObRecent = wasTrueRecently(tfRows, detectTurtleSell, 4) && detectOrderBlock(tfRows).inBearOB;
+  return rocketRecent && turtleObRecent;
+}
 
-const megaSellCount =
-  (turtleBuyDeniedRecent ? 1 : 0) +
-  (heartSell ? 1 : 0) +
-  (utSellRecent ? 1 : 0) +
-  (rocketSellRecentForCombo ? 1 : 0) +
-  (rocketTurtleComboSell ? 1 : 0) +
-  (superComboSell ? 1 : 0);
-const megaSellBreakout = target.kind === "stock" && megaSellCount >= 3 && inBearOB;
+const weeklyComboBuy = f_weeklyMonthlyComboBuy(weeklyRows);
+const monthlyComboBuy = f_weeklyMonthlyComboBuy(monthlyRows);
+const dailyBullishSignal = rocketTurtleCombo || superCombo || heartBuy;
+const megaBuyBreakout = target.kind === "stock" && weeklyComboBuy && monthlyComboBuy && dailyBullishSignal;
+
+const weeklyComboSell = f_weeklyMonthlyComboSell(weeklyRows);
+const monthlyComboSell = f_weeklyMonthlyComboSell(monthlyRows);
+const dailyBearishSignal = rocketTurtleComboSell || superComboSell || heartSell;
+const megaSellBreakout = target.kind === "stock" && weeklyComboSell && monthlyComboSell && dailyBearishSignal;
 
 // キター/キタキタ〜判定: タートル＋Bu-OB(Be-OB)が4Hと日足の両方で揃ってることが大前提。
 // そこにheartBuy(★Buy💚相当)とCorys相当(リボン収縮)がいくつ追加で揃うかで、1つでキター、2つでキタキタ〜

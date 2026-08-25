@@ -63,24 +63,37 @@ function pickTurtleHonmeiBuy23(results) {
       (x) =>
         x.rocketTurtleCombo === true ||
         x.superCombo === true ||
+        x.rocketTurtleComboSell === true ||
+        x.superComboSell === true ||
         x.megaBuyBreakout === true ||
-        x.megaSellBreakout === true ||
-        (x.direction === "buy" && x.inBullOB === true && x.heartBuy === true)
+        x.megaSellBreakout === true
     )
-    .map((x) => ({
-      kind: "stock",
-      code: x.code,
-      name: x.name,
-      price: x.price,
-      score: x.score,
-      direction: x.direction,
-      rocketTurtleCombo: Boolean(x.rocketTurtleCombo), // 🚀タートル速攻
-      superCombo: Boolean(x.superCombo), // 👑超本命
-      megaBuyBreakout: Boolean(x.megaBuyBreakout), // 💥爆上げ本命
-      megaSellBreakout: Boolean(x.megaSellBreakout), // 💥暴落本命
-      buy2: Boolean(x.direction === "buy" && x.inBullOB && x.heartBuy), // ✫Buy💚2
-      buy3: Boolean(x.direction === "buy" && x.inBullOB && x.heartBuy && x.turtleBuy), // ✫Buy💚3
-    }));
+    .map((x) => {
+      // 一覧の「シグナル」欄に出す用: どのcomboに該当したかをまとめたラベル
+      const labels = [];
+      if (x.megaBuyBreakout) labels.push("💥爆上げ本命");
+      if (x.megaSellBreakout) labels.push("💥暴落本命");
+      if (x.superCombo) labels.push("👑超本命");
+      if (x.rocketTurtleCombo) labels.push("🚀タートル速攻");
+      if (x.superComboSell) labels.push("👑超本命売り");
+      if (x.rocketTurtleComboSell) labels.push("🚀タートル速攻売り");
+
+      return {
+        kind: "stock",
+        code: x.code,
+        name: x.name,
+        price: x.price,
+        score: x.score,
+        direction: x.direction,
+        signal: labels.join("｜") || "-",
+        rocketTurtleCombo: Boolean(x.rocketTurtleCombo), // 🚀タートル速攻
+        superCombo: Boolean(x.superCombo), // 👑超本命
+        rocketTurtleComboSell: Boolean(x.rocketTurtleComboSell), // 🚀タートル速攻売り
+        superComboSell: Boolean(x.superComboSell), // 👑超本命売り
+        megaBuyBreakout: Boolean(x.megaBuyBreakout), // 💥爆上げ本命
+        megaSellBreakout: Boolean(x.megaSellBreakout), // 💥暴落本命
+      };
+    });
 
   // FX(為替・暗号資産)・指数向けcombo(🚀タートル速攻FX/👑超本命FXとその売り版)
   const fxPicks = results
