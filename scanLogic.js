@@ -2358,6 +2358,9 @@ const TABS = [
   "🚀タートル速攻FX売り",
   "👑超本命FX",
   "👑超本命FX売り",
+  "🐉ドラゴン複合",
+  "🟢とんぼ",
+  "🔴とうば",
 ];
 const DAILY_SCAN_TASK = "project-sh-daily-scan";
 
@@ -2966,6 +2969,42 @@ function findRecentTurtleSellLevel(rows, { lookbackBars = 200 } = {}) {
 }
 
 // GC20/75が直近N本以内に発生したか(同日だけでなく、少し前のクロスも拾う)
+// 株ドラゴン(kabudragon.com)のローソク足パターン screening を参考に移植。
+// とんぼ(トンボ): 実体が小さく下ヒゲが長い、上ヒゲはほぼ無い→反発サイン
+function detectTonbo(rows) {
+  if (!Array.isArray(rows) || rows.length < 1) return false;
+  const r = rows[rows.length - 1];
+  const range = r.high - r.low;
+  if (!range || range <= 0) return false;
+  const body = Math.abs(r.close - r.open);
+  const upperWick = r.high - Math.max(r.open, r.close);
+  const lowerWick = Math.min(r.open, r.close) - r.low;
+  return body <= range * 0.1 && upperWick <= range * 0.1 && lowerWick >= range * 0.6;
+}
+
+// とうば(トウバ): 実体が小さく上ヒゲが長い、下ヒゲはほぼ無い→反落サイン
+function detectTouba(rows) {
+  if (!Array.isArray(rows) || rows.length < 1) return false;
+  const r = rows[rows.length - 1];
+  const range = r.high - r.low;
+  if (!range || range <= 0) return false;
+  const body = Math.abs(r.close - r.open);
+  const upperWick = r.high - Math.max(r.open, r.close);
+  const lowerWick = Math.min(r.open, r.close) - r.low;
+  return body <= range * 0.1 && lowerWick <= range * 0.1 && upperWick >= range * 0.6;
+}
+
+// 三空踏み上げ: 直近の一定期間内に上に窓を開けた足(前足の高値を上抜けてスタート)が3回以上ある
+function detectSankuFumiage(rows, lookback = 10) {
+  if (!Array.isArray(rows) || rows.length < 4) return false;
+  const n = rows.length;
+  let gapCount = 0;
+  for (let i = Math.max(1, n - lookback); i < n; i += 1) {
+    if (rows[i].low > rows[i - 1].high) gapCount += 1;
+  }
+  return gapCount >= 3;
+}
+
 function detectGc20_75Recent(closes, { lookback = 5 } = {}) {
   const ema20Series = calcEMASeries(closes, 20);
   const n = closes.length;
@@ -4924,6 +4963,9 @@ const fibBounce = target.kind === "stock" ? detectFibBounceFromBottom(monthlyRow
 const weeklyCloses = weeklyRows.map((r) => r.close);
 const weeklyRsi = calcRSI(weeklyCloses, 14);
 const weeklyRsi90 = weeklyRsi !== null && weeklyRsi >= 90;
+const monthlyClosesForRsi = monthlyRows.map((r) => r.close);
+const monthlyRsi = calcRSI(monthlyClosesForRsi, 14);
+const monthlyRsi90 = monthlyRsi !== null && monthlyRsi >= 90;
 
 // ロック: ①週足MACD△→②週足RSI△→③Buy、のバックテストで有効性確認済みの必須条件。
 // ユーザー指示により、この条件(定義・要否とも)は無断で変更しないこと。
@@ -5496,6 +5538,23 @@ const heartSell =
   lastDayIndex >= 0 &&
   dayPos[lastDayIndex] === -1 &&
   (recentStrongSellTrigger || rsiSellNowStrong);
+
+// 株ドラゴンのローソク足パターンを参考にしたシンプルな単発判定(株・FX・暗号資産・指数すべて対象)
+const tonbo = detectTonbo(rows);
+const touba = detectTouba(rows);
+const sankuFumiage = detectSankuFumiage(rows);
+
+// 株ドラゴンだと1個ずつしかフィルターを組み合わせられないため、
+// 「25日線乖離プラス+75日線乖離プラス+貸借銘柄+三空踏み上げ+月足RSI90以上」を全部同時に満たす銘柄だけを出す複合タブ
+const kabudragonCombo =
+  target.kind === "stock" &&
+  typeof dev25 === "number" &&
+  dev25 > 0 &&
+  typeof dev75 === "number" &&
+  dev75 > 0 &&
+  isLendingStock(target.code) &&
+  sankuFumiage &&
+  monthlyRsi90;
 
 // 💥爆上げ本命/💥暴落本命(くみちゃんの経験則v1に戻した): タートル否定・★Buy💚(heartBuy)・UTフリップ・
 // ロケット・本命(rocketTurtleCombo)・超本命(superCombo)のうち3つ以上が直近(4本以内)で点灯していて、
@@ -6082,6 +6141,11 @@ if (fxTripleBottomInfo) {
     megaSellBreakoutWM,
     megaBuyBreakoutWMFrame,
     megaSellBreakoutWMFrame,
+    tonbo,
+    touba,
+    sankuFumiage,
+    monthlyRsi90,
+    kabudragonCombo,
     thinCloudBuy,
     thinCloudSell,
     ichiFibTurtleCombo,
