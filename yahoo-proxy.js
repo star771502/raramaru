@@ -66,11 +66,15 @@ function pickTurtleHonmeiBuy23(results) {
         x.rocketTurtleComboSell === true ||
         x.superComboSell === true ||
         x.megaBuyBreakout === true ||
-        x.megaSellBreakout === true
+        x.megaSellBreakout === true ||
+        x.megaBuyBreakoutWM === true ||
+        x.megaSellBreakoutWM === true
     )
     .map((x) => {
       // 一覧の「シグナル」欄に出す用: どのcomboに該当したかをまとめたラベル
       const labels = [];
+      if (x.megaBuyBreakoutWM) labels.push(`💥爆上げ週月(${x.megaBuyBreakoutWMFrame})`);
+      if (x.megaSellBreakoutWM) labels.push(`💥暴落週月(${x.megaSellBreakoutWMFrame})`);
       if (x.megaBuyBreakout) labels.push("💥爆上げ本命");
       if (x.megaSellBreakout) labels.push("💥暴落本命");
       if (x.superCombo) labels.push("👑超本命");
@@ -92,6 +96,10 @@ function pickTurtleHonmeiBuy23(results) {
         superComboSell: Boolean(x.superComboSell), // 👑超本命売り
         megaBuyBreakout: Boolean(x.megaBuyBreakout), // 💥爆上げ本命
         megaSellBreakout: Boolean(x.megaSellBreakout), // 💥暴落本命
+        megaBuyBreakoutWM: Boolean(x.megaBuyBreakoutWM), // 💥爆上げ週月
+        megaSellBreakoutWM: Boolean(x.megaSellBreakoutWM), // 💥暴落週月
+        megaBuyBreakoutWMFrame: x.megaBuyBreakoutWMFrame || null,
+        megaSellBreakoutWMFrame: x.megaSellBreakoutWMFrame || null,
       };
     });
 

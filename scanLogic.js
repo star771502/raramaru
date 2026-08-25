@@ -2348,6 +2348,8 @@ const TARGETS = RAW_TARGETS.trim()
 const TABS = [
   "💥爆上げ本命",
   "💥暴落本命",
+  "💥爆上げ週月",
+  "💥暴落週月",
   "👑超本命",
   "👑超本命売り",
   "🚀タートル速攻",
@@ -5495,10 +5497,34 @@ const heartSell =
   dayPos[lastDayIndex] === -1 &&
   (recentStrongSellTrigger || rsiSellNowStrong);
 
-// 💥爆上げ本命/💥暴落本命(くみちゃんの経験則v2): 週足・月足それぞれで本命/超本命(ロケット+タートル+OB)が
-// 成立していて(大きい波の途中であることの確認)、かつ日足で本命・超本命・★Buy💚のどれかが今日出た時に成立とする
-const megaComboTfAllowed = isFirstTradingDayOfWeek(rows) || isFirstTradingDayOfMonth(rows);
+// 💥爆上げ本命/💥暴落本命(くみちゃんの経験則v1に戻した): タートル否定・★Buy💚(heartBuy)・UTフリップ・
+// ロケット・本命(rocketTurtleCombo)・超本命(superCombo)のうち3つ以上が直近(4本以内)で点灯していて、
+// かつBu-OB/Be-OBの中にいる時。週足・月足の実combo必須(v2)や「週/月の1本目」限定は
+// ほぼ0件になってしまうため外し、カウント+OBのみに戻した。
+const utBuyRecent = target.kind === "stock" && lastDayIndex >= 1 && barsSinceRecentBuy(dayPos) <= 4;
+const utSellRecent = target.kind === "stock" && lastDayIndex >= 1 && barsSinceRecentSell(dayPos) <= 4;
 
+const megaBuyCount =
+  (turtleSellDeniedRecent ? 1 : 0) +
+  (heartBuy ? 1 : 0) +
+  (utBuyRecent ? 1 : 0) +
+  (rocketRecentForCombo ? 1 : 0) +
+  (rocketTurtleCombo ? 1 : 0) +
+  (superCombo ? 1 : 0);
+const megaBuyBreakout = target.kind === "stock" && megaBuyCount >= 3 && inBullOB;
+
+const megaSellCount =
+  (turtleBuyDeniedRecent ? 1 : 0) +
+  (heartSell ? 1 : 0) +
+  (utSellRecent ? 1 : 0) +
+  (rocketSellRecentForCombo ? 1 : 0) +
+  (rocketTurtleComboSell ? 1 : 0) +
+  (superComboSell ? 1 : 0);
+const megaSellBreakout = target.kind === "stock" && megaSellCount >= 3 && inBearOB;
+
+// 💥爆上げ週月/💥暴落週月: 上の💥爆上げ本命/暴落本命(カウント方式)とは別枠の、より厳しい追加版。
+// 週足・月足それぞれで本命/超本命(ロケット+タートル+OB)が実際に成立していて(大きい波の途中である確認)、
+// かつ日足で本命・超本命・★Buy💚のどれかが出た時に成立とする。
 function f_weeklyMonthlyComboBuy(tfRows) {
   if (target.kind !== "stock" || !Array.isArray(tfRows) || tfRows.length < 40) return false;
   const rocketRecent = Boolean(findRocketBuy(tfRows, 4));
@@ -5515,12 +5541,28 @@ function f_weeklyMonthlyComboSell(tfRows) {
 const weeklyComboBuy = f_weeklyMonthlyComboBuy(weeklyRows);
 const monthlyComboBuy = f_weeklyMonthlyComboBuy(monthlyRows);
 const dailyBullishSignal = rocketTurtleCombo || superCombo || heartBuy;
-const megaBuyBreakout = target.kind === "stock" && weeklyComboBuy && monthlyComboBuy && dailyBullishSignal;
+// 週足・月足どちらか一方でも実comboが成立してれば対象にする(両方必須だとほぼ0件になるため)
+const megaBuyBreakoutWM = target.kind === "stock" && (weeklyComboBuy || monthlyComboBuy) && dailyBullishSignal;
+// どちらのフレームで成立したかを見た目で分かるようにラベル化(週/月/週+月)
+const megaBuyBreakoutWMFrame = !megaBuyBreakoutWM
+  ? null
+  : weeklyComboBuy && monthlyComboBuy
+  ? "週+月"
+  : weeklyComboBuy
+  ? "週"
+  : "月";
 
 const weeklyComboSell = f_weeklyMonthlyComboSell(weeklyRows);
 const monthlyComboSell = f_weeklyMonthlyComboSell(monthlyRows);
 const dailyBearishSignal = rocketTurtleComboSell || superComboSell || heartSell;
-const megaSellBreakout = target.kind === "stock" && weeklyComboSell && monthlyComboSell && dailyBearishSignal;
+const megaSellBreakoutWM = target.kind === "stock" && (weeklyComboSell || monthlyComboSell) && dailyBearishSignal;
+const megaSellBreakoutWMFrame = !megaSellBreakoutWM
+  ? null
+  : weeklyComboSell && monthlyComboSell
+  ? "週+月"
+  : weeklyComboSell
+  ? "週"
+  : "月";
 
 // キター/キタキタ〜判定: タートル＋Bu-OB(Be-OB)が4Hと日足の両方で揃ってることが大前提。
 // そこにheartBuy(★Buy💚相当)とCorys相当(リボン収縮)がいくつ追加で揃うかで、1つでキター、2つでキタキタ〜
@@ -6036,6 +6078,10 @@ if (fxTripleBottomInfo) {
     superComboSellFx,
     megaBuyBreakout,
     megaSellBreakout,
+    megaBuyBreakoutWM,
+    megaSellBreakoutWM,
+    megaBuyBreakoutWMFrame,
+    megaSellBreakoutWMFrame,
     thinCloudBuy,
     thinCloudSell,
     ichiFibTurtleCombo,
