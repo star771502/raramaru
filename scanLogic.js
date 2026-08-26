@@ -2350,6 +2350,8 @@ const TABS = [
   "💥暴落本命",
   "💥爆上げ週月",
   "💥暴落週月",
+  "💥爆上げ月足",
+  "💥爆上げ週足",
   "👑超本命",
   "👑超本命売り",
   "🚀タートル速攻",
@@ -2932,6 +2934,99 @@ function checkTimeframeTurtleOB(tfRows, isSell) {
   const turtleMatch = wasTrueRecently(tfRows, isSell ? detectTurtleSell : detectTurtleBuy, 4);
   const { inBullOB, inBearOB } = detectOrderBlock(tfRows);
   return turtleMatch && (isSell ? inBearOB : inBullOB);
+}
+
+// 💥爆上げ本命(日足版)と同じ「タートル否定・heartBuy相当・UTフリップ・ロケット・本命・超本命の
+// うち3つ以上+OB」判定を、任意の時間足(週足/月足)のrowsに対して行う。
+function f_megaBreakoutBuyOnTF(tfRows) {
+  if (!Array.isArray(tfRows) || tfRows.length < 40) return false;
+  const closes = tfRows.map((r) => r.close);
+  const pos = calcUTBotPosition(tfRows, 2.0, 10);
+  const lastIdx = pos.length - 1;
+  const rsiSeries = calcRSISeriesWilder(closes, 14);
+  const { hist } = calcMACDSeries(closes, 12, 26, 9);
+  const startIdx = Math.max(2, lastIdx - 7);
+  let recentStrongBuyTrigger = false;
+  for (let i = startIdx; i <= lastIdx; i += 1) {
+    if (isRsiRecover30(rsiSeries, i) || isHistTurnUp(hist, i)) recentStrongBuyTrigger = true;
+  }
+  const rsiNow = rsiSeries[lastIdx];
+  const rsiPrev = rsiSeries[lastIdx - 1];
+  const rsiBuyNowStrong = Number.isFinite(rsiNow) && Number.isFinite(rsiPrev) && rsiNow > rsiPrev && rsiNow <= 50;
+  const heartBuyEq = lastIdx >= 0 && pos[lastIdx] === 1 && (recentStrongBuyTrigger || rsiBuyNowStrong);
+  let barsSinceBuy = Infinity;
+  for (let i = pos.length - 1; i >= 1; i -= 1) {
+    if (pos[i] === 1 && pos[i - 1] === -1) {
+      barsSinceBuy = pos.length - 1 - i;
+      break;
+    }
+  }
+  const utBuyRecentEq = lastIdx >= 1 && barsSinceBuy <= 4;
+  const rocketRecentEq = Boolean(findRocketBuy(tfRows, 4));
+  const turtleOBRecentEq = wasTrueRecently(tfRows, detectTurtleBuy, 4) && detectOrderBlock(tfRows).inBullOB;
+  const rocketTurtleComboEq = rocketRecentEq && turtleOBRecentEq;
+  const turtleSellDeniedRecentEq = wasTrueRecently(tfRows, detectTurtleSellDenied, 4);
+  const superComboEq = rocketTurtleComboEq && turtleSellDeniedRecentEq;
+  const count =
+    (turtleSellDeniedRecentEq ? 1 : 0) +
+    (heartBuyEq ? 1 : 0) +
+    (utBuyRecentEq ? 1 : 0) +
+    (rocketRecentEq ? 1 : 0) +
+    (rocketTurtleComboEq ? 1 : 0) +
+    (superComboEq ? 1 : 0);
+  return count >= 3 && detectOrderBlock(tfRows).inBullOB;
+}
+
+// f_megaBreakoutBuyOnTFの売り版ミラー(💥暴落本命相当)
+function f_megaBreakoutSellOnTF(tfRows) {
+  if (!Array.isArray(tfRows) || tfRows.length < 40) return false;
+  const closes = tfRows.map((r) => r.close);
+  const pos = calcUTBotPosition(tfRows, 2.0, 10);
+  const lastIdx = pos.length - 1;
+  const rsiSeries = calcRSISeriesWilder(closes, 14);
+  const { hist } = calcMACDSeries(closes, 12, 26, 9);
+  const startIdx = Math.max(2, lastIdx - 7);
+  let recentStrongSellTrigger = false;
+  for (let i = startIdx; i <= lastIdx; i += 1) {
+    if (isRsiHotDown70(rsiSeries, i) || isHistTurnDown(hist, i)) recentStrongSellTrigger = true;
+  }
+  const rsiNow = rsiSeries[lastIdx];
+  const rsiPrev = rsiSeries[lastIdx - 1];
+  const rsiSellNowStrong = Number.isFinite(rsiNow) && Number.isFinite(rsiPrev) && rsiNow < rsiPrev && rsiNow >= 50;
+  const heartSellEq = lastIdx >= 0 && pos[lastIdx] === -1 && (recentStrongSellTrigger || rsiSellNowStrong);
+  let barsSinceSell = Infinity;
+  for (let i = pos.length - 1; i >= 1; i -= 1) {
+    if (pos[i] === -1 && pos[i - 1] === 1) {
+      barsSinceSell = pos.length - 1 - i;
+      break;
+    }
+  }
+  const utSellRecentEq = lastIdx >= 1 && barsSinceSell <= 4;
+  const rocketSellRecentEq = Boolean(findRocketSell(tfRows, 4));
+  const turtleOBSellRecentEq = wasTrueRecently(tfRows, detectTurtleSell, 4) && detectOrderBlock(tfRows).inBearOB;
+  const rocketTurtleComboSellEq = rocketSellRecentEq && turtleOBSellRecentEq;
+  const turtleBuyDeniedRecentEq = wasTrueRecently(tfRows, detectTurtleBuyDenied, 4);
+  const superComboSellEq = rocketTurtleComboSellEq && turtleBuyDeniedRecentEq;
+  const count =
+    (turtleBuyDeniedRecentEq ? 1 : 0) +
+    (heartSellEq ? 1 : 0) +
+    (utSellRecentEq ? 1 : 0) +
+    (rocketSellRecentEq ? 1 : 0) +
+    (rocketTurtleComboSellEq ? 1 : 0) +
+    (superComboSellEq ? 1 : 0);
+  return count >= 3 && detectOrderBlock(tfRows).inBearOB;
+}
+
+// 直近nBars本(週足/月足)のどこかで一度でもf_megaBreakoutBuyOnTF/SellOnTFが成立していたか
+// (「6か月以内に爆上げが月足で点灯した」のような過去の履歴チェック用)
+function wasMegaBreakoutWithinLastN(tfRows, nBars, isBuy) {
+  if (!Array.isArray(tfRows) || tfRows.length < 40) return false;
+  const checkFn = isBuy ? f_megaBreakoutBuyOnTF : f_megaBreakoutSellOnTF;
+  const start = Math.max(40, tfRows.length - nBars + 1);
+  for (let i = start; i <= tfRows.length; i += 1) {
+    if (checkFn(tfRows.slice(0, i))) return true;
+  }
+  return false;
 }
 
 // 過去のタートル売り(200日SMA割れ+20日安値割れ)が出た価格を、直近の抵抗帯として拾う
@@ -5621,6 +5716,17 @@ const megaSellBreakoutWMFrame = !megaSellBreakoutWM
   ? "週"
   : "月";
 
+// 💥爆上げ月足/週足(直近6本以内に一度でも点灯): 💥爆上げ本命と全く同じ「6シグナルのうち3つ以上+OB」判定を、
+// 日足ではなく週足/月足のrows自体に対して行い、直近6本のどこかで一度でも成立していたか見る。
+const monthlyMegaBreakoutBuyRecent =
+  target.kind === "stock" && wasMegaBreakoutWithinLastN(monthlyRows, 6, true);
+const weeklyMegaBreakoutBuyRecent =
+  target.kind === "stock" && wasMegaBreakoutWithinLastN(weeklyRows, 6, true);
+const monthlyMegaBreakoutSellRecent =
+  target.kind === "stock" && wasMegaBreakoutWithinLastN(monthlyRows, 6, false);
+const weeklyMegaBreakoutSellRecent =
+  target.kind === "stock" && wasMegaBreakoutWithinLastN(weeklyRows, 6, false);
+
 // キター/キタキタ〜判定: タートル＋Bu-OB(Be-OB)が4Hと日足の両方で揃ってることが大前提。
 // そこにheartBuy(★Buy💚相当)とCorys相当(リボン収縮)がいくつ追加で揃うかで、1つでキター、2つでキタキタ〜
 const buyBaseGate =
@@ -6139,6 +6245,10 @@ if (fxTripleBottomInfo) {
     megaSellBreakoutWM,
     megaBuyBreakoutWMFrame,
     megaSellBreakoutWMFrame,
+    monthlyMegaBreakoutBuyRecent,
+    weeklyMegaBreakoutBuyRecent,
+    monthlyMegaBreakoutSellRecent,
+    weeklyMegaBreakoutSellRecent,
     tonbo,
     touba,
     sankuFumiage,
