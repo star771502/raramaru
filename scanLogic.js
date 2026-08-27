@@ -5735,16 +5735,17 @@ const megaSellBreakoutWMFrame = !megaSellBreakoutWM
   ? "週"
   : "月";
 
-// 💥爆上げ月足/週足(直近6本以内に一度でも点灯): 💥爆上げ本命と全く同じ「6シグナルのうち3つ以上+OB」判定を、
-// 日足ではなく週足/月足のrows自体に対して行い、直近6本のどこかで一度でも成立していたか見る。
-const monthlyMegaBreakoutBuyRecent =
-  target.kind === "stock" && wasMegaBreakoutWithinLastN(monthlyRows, 6, true);
+// 💥爆上げ月足/週足: 月足/週足のローソク足で再計算するのではなく、実際にチャートに表示される
+// 「本物の日足の爆上げ本命combo」(megaBuyCount>=3+OB、爆上げ本命と全く同一の式)が、
+// 直近の週単位/月単位の範囲内で一度でも成立していたかを見る(日足rowsに対して判定期間だけ延ばす)。
 const weeklyMegaBreakoutBuyRecent =
-  target.kind === "stock" && wasMegaBreakoutWithinLastN(weeklyRows, 6, true);
-const monthlyMegaBreakoutSellRecent =
-  target.kind === "stock" && wasMegaBreakoutWithinLastN(monthlyRows, 6, false);
+  target.kind === "stock" && wasMegaBreakoutWithinLastN(rows, 20, true);
+const monthlyMegaBreakoutBuyRecent =
+  target.kind === "stock" && wasMegaBreakoutWithinLastN(rows, 90, true);
 const weeklyMegaBreakoutSellRecent =
-  target.kind === "stock" && wasMegaBreakoutWithinLastN(weeklyRows, 6, false);
+  target.kind === "stock" && wasMegaBreakoutWithinLastN(rows, 20, false);
+const monthlyMegaBreakoutSellRecent =
+  target.kind === "stock" && wasMegaBreakoutWithinLastN(rows, 90, false);
 
 // キター/キタキタ〜判定: タートル＋Bu-OB(Be-OB)が4Hと日足の両方で揃ってることが大前提。
 // そこにheartBuy(★Buy💚相当)とCorys相当(リボン収縮)がいくつ追加で揃うかで、1つでキター、2つでキタキタ〜
