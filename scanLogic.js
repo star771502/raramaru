@@ -2356,10 +2356,8 @@ const TABS = [
   "👑超本命売り",
   "🚀タートル速攻",
   "🚀タートル速攻売り",
-  "🚀タートル速攻FX",
-  "🚀タートル速攻FX売り",
-  "👑超本命FX",
-  "👑超本命FX売り",
+  "FX買い(週足/月足)",
+  "FX売り(週足/月足)",
   "🐉ドラゴン複合",
 ];
 const DAILY_SCAN_TASK = "project-sh-daily-scan";
@@ -5561,6 +5559,27 @@ const rocketTurtleComboSellFx = fxIdxRocketSellRecent && fxIdxTurtleSellOBRecent
 const fxIdxTurtleBuyDeniedRecent = fxIdxKind && wasTrueRecently(rows, detectTurtleBuyDenied, 4);
 const superComboSellFx = rocketTurtleComboSellFx && fxIdxTurtleBuyDeniedRecent;
 
+// FX週足/月足版: 日足の「ロケット+タートル+OB全部揃う」ANDだと厳しすぎて検索に出ないため、
+// 週足・月足それぞれで「ロケットバイ」or「タートル+OB」のどちらか一方でも成立していれば対象にする(OR方式)。
+// weeklyRows/monthlyRowsはforex以外(crypto/index)では空配列になるため、実質forexのみが対象になる。
+const fxWeeklyRocketBuy = Boolean(findRocketBuy(weeklyRows, 4));
+const fxWeeklyTurtleObBuy = wasTrueRecently(weeklyRows, detectTurtleBuy, 4) && detectOrderBlock(weeklyRows).inBullOB;
+const fxMonthlyRocketBuy = Boolean(findRocketBuy(monthlyRows, 4));
+const fxMonthlyTurtleObBuy = wasTrueRecently(monthlyRows, detectTurtleBuy, 4) && detectOrderBlock(monthlyRows).inBullOB;
+const fxWeeklyBuyHit = fxWeeklyRocketBuy || fxWeeklyTurtleObBuy;
+const fxMonthlyBuyHit = fxMonthlyRocketBuy || fxMonthlyTurtleObBuy;
+const fxWmBuy = fxIdxKind && (fxWeeklyBuyHit || fxMonthlyBuyHit);
+const fxWmBuyFrame = !fxWmBuy ? null : fxWeeklyBuyHit && fxMonthlyBuyHit ? "週+月" : fxWeeklyBuyHit ? "週" : "月";
+
+const fxWeeklyRocketSell = Boolean(findRocketSell(weeklyRows, 4));
+const fxWeeklyTurtleObSell = wasTrueRecently(weeklyRows, detectTurtleSell, 4) && detectOrderBlock(weeklyRows).inBearOB;
+const fxMonthlyRocketSell = Boolean(findRocketSell(monthlyRows, 4));
+const fxMonthlyTurtleObSell = wasTrueRecently(monthlyRows, detectTurtleSell, 4) && detectOrderBlock(monthlyRows).inBearOB;
+const fxWeeklySellHit = fxWeeklyRocketSell || fxWeeklyTurtleObSell;
+const fxMonthlySellHit = fxMonthlyRocketSell || fxMonthlyTurtleObSell;
+const fxWmSell = fxIdxKind && (fxWeeklySellHit || fxMonthlySellHit);
+const fxWmSellFrame = !fxWmSell ? null : fxWeeklySellHit && fxMonthlySellHit ? "週+月" : fxWeeklySellHit ? "週" : "月";
+
 // 雲が薄い(センコウスパンA/B幅3%未満)＋雲の上/下にいるかどうか
 const thinCloudInfo = target.kind === "stock" ? detectThinCloud(rows) : { isThin: false, widthPct: null, aboveCloud: false, belowCloud: false };
 const thinCloudBuy = thinCloudInfo.isThin && thinCloudInfo.aboveCloud;
@@ -6239,6 +6258,10 @@ if (fxTripleBottomInfo) {
     superComboFx,
     rocketTurtleComboSellFx,
     superComboSellFx,
+    fxWmBuy,
+    fxWmBuyFrame,
+    fxWmSell,
+    fxWmSellFrame,
     megaBuyBreakout,
     megaSellBreakout,
     megaBuyBreakoutWM,
