@@ -3017,12 +3017,65 @@ function f_megaBreakoutSellOnTF(tfRows) {
 
 // 直近nBars本(週足/月足)のどこかで一度でもf_megaBreakoutBuyOnTF/SellOnTFが成立していたか
 // (「6か月以内に爆上げが月足で点灯した」のような過去の履歴チェック用)
+// パフォーマンス対策: 毎回tfRows.slice(0,i)の全区間からUTボット/RSI/MACDを再計算すると
+// 銘柄数×日数分だけ重くなりサーバーが固まるため、これらの系列は一度だけ計算して使い回し、
+// パターン検出系(ロケット/タートル/OB)だけ直近の小さいウィンドウで都度チェックする。
 function wasMegaBreakoutWithinLastN(tfRows, nBars, isBuy) {
   if (!Array.isArray(tfRows) || tfRows.length < 40) return false;
-  const checkFn = isBuy ? f_megaBreakoutBuyOnTF : f_megaBreakoutSellOnTF;
-  const start = Math.max(40, tfRows.length - nBars + 1);
-  for (let i = start; i <= tfRows.length; i += 1) {
-    if (checkFn(tfRows.slice(0, i))) return true;
+  const closes = tfRows.map((r) => r.close);
+  const pos = calcUTBotPosition(tfRows, 2.0, 10);
+  const rsiSeries = calcRSISeriesWilder(closes, 14);
+  const { hist } = calcMACDSeries(closes, 12, 26, 9);
+  const WINDOW = 110; // 75日SMAトレンドフィルター等に十分な余裕を持たせた小窓
+
+  const start = Math.max(40, tfRows.length - nBars);
+  for (let i = start; i < tfRows.length; i += 1) {
+    const windowStart = Math.max(0, i - WINDOW);
+    const windowRows = tfRows.slice(windowStart, i + 1);
+
+    let recentTrigger = false;
+    const triggerStart = Math.max(0, i - 7);
+    for (let j = triggerStart; j <= i; j += 1) {
+      if (isBuy ? isRsiRecover30(rsiSeries, j) || isHistTurnUp(hist, j) : isRsiHotDown70(rsiSeries, j) || isHistTurnDown(hist, j)) {
+        recentTrigger = true;
+        break;
+      }
+    }
+    const rsiNow = rsiSeries[i];
+    const rsiPrev = rsiSeries[i - 1];
+    const rsiNowStrong = isBuy
+      ? Number.isFinite(rsiNow) && Number.isFinite(rsiPrev) && rsiNow > rsiPrev && rsiNow <= 50
+      : Number.isFinite(rsiNow) && Number.isFinite(rsiPrev) && rsiNow < rsiPrev && rsiNow >= 50;
+    const heartEq = pos[i] === (isBuy ? 1 : -1) && (recentTrigger || rsiNowStrong);
+
+    let barsSince = Infinity;
+    for (let j = i; j >= 1 && i - j <= 4; j -= 1) {
+      if (pos[j] === (isBuy ? 1 : -1) && pos[j - 1] === (isBuy ? -1 : 1)) {
+        barsSince = i - j;
+        break;
+      }
+    }
+    const utRecentEq = barsSince <= 4;
+
+    const rocketRecentEq = Boolean(isBuy ? findRocketBuy(windowRows, 4) : findRocketSell(windowRows, 4));
+    const turtleOB = detectOrderBlock(windowRows);
+    const turtleOBRecentEq =
+      wasTrueRecently(windowRows, isBuy ? detectTurtleBuy : detectTurtleSell, 4) &&
+      (isBuy ? turtleOB.inBullOB : turtleOB.inBearOB);
+    const rocketTurtleComboEq = rocketRecentEq && turtleOBRecentEq;
+    const turtleDeniedRecentEq = wasTrueRecently(windowRows, isBuy ? detectTurtleSellDenied : detectTurtleBuyDenied, 4);
+    const superComboEq = rocketTurtleComboEq && turtleDeniedRecentEq;
+
+    const count =
+      (turtleDeniedRecentEq ? 1 : 0) +
+      (heartEq ? 1 : 0) +
+      (utRecentEq ? 1 : 0) +
+      (rocketRecentEq ? 1 : 0) +
+      (rocketTurtleComboEq ? 1 : 0) +
+      (superComboEq ? 1 : 0);
+
+    const obNow = isBuy ? turtleOB.inBullOB : turtleOB.inBearOB;
+    if (count >= 3 && obNow) return true;
   }
   return false;
 }
