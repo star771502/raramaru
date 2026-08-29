@@ -2348,17 +2348,11 @@ const TARGETS = RAW_TARGETS.trim()
 const TABS = [
   "💥爆上げ本命",
   "💥暴落本命",
-  "💥爆上げ週月",
-  "💥暴落週月",
-  "💥爆上げ月足",
   "💥爆上げ週足",
-  "👑超本命",
-  "👑超本命売り",
-  "🚀タートル速攻",
-  "🚀タートル速攻売り",
+  "💥爆上げ月足",
+  "4PO買い",
+  "4PO売り",
   "FX買い(週足/月足)",
-  "FX売り(週足/月足)",
-  "🐉ドラゴン複合",
 ];
 const DAILY_SCAN_TASK = "project-sh-daily-scan";
 
@@ -2412,6 +2406,30 @@ function sma(values, period) {
   if (!values || values.length < period) return null;
   const arr = values.slice(-period);
   return arr.reduce((a, b) => a + b, 0) / period;
+}
+
+// パーフェクトオーダー: 短期・中期・長期の移動平均が価格の勢いと同じ順番できれいに並んでる状態
+// 4時間足は6ヶ月分の1時間足(≒210本前後の4H足)しか取得していないため、200MAだと
+// データが足りずほぼ常にnullになってしまう。実際に計算できる期間(20/50/100)に調整。
+// 買い(4PO用): 20MA > 50MA > 100MA
+function detectPerfectOrderBuy(tfRows) {
+  if (!Array.isArray(tfRows)) return false;
+  const closes = tfRows.map((r) => r.close);
+  const ma20 = sma(closes, 20);
+  const ma50 = sma(closes, 50);
+  const ma100 = sma(closes, 100);
+  if (ma20 === null || ma50 === null || ma100 === null) return false;
+  return ma20 > ma50 && ma50 > ma100;
+}
+// 売り(4PO用): 20MA < 50MA < 100MA
+function detectPerfectOrderSell(tfRows) {
+  if (!Array.isArray(tfRows)) return false;
+  const closes = tfRows.map((r) => r.close);
+  const ma20 = sma(closes, 20);
+  const ma50 = sma(closes, 50);
+  const ma100 = sma(closes, 100);
+  if (ma20 === null || ma50 === null || ma100 === null) return false;
+  return ma20 < ma50 && ma50 < ma100;
 }
 function calcBollingerUpper(closes, period = 20, mult = 2) {
   if (!closes || closes.length < period) return null;
@@ -5045,10 +5063,14 @@ function judgeSignal(target, rows, hourlyRows = []){
   const prev = rows[rows.length - 2];
 
 const weeklyRows =
-  target.kind === "stock" || target.kind === "forex" ? toWeeklyRows(rows) : [];
+  target.kind === "stock" || target.kind === "forex" || target.kind === "crypto" || target.kind === "index"
+    ? toWeeklyRows(rows)
+    : [];
 
 const monthlyRows =
-  target.kind === "stock" || target.kind === "forex" ? toMonthlyRows(rows) : [];
+  target.kind === "stock" || target.kind === "forex" || target.kind === "crypto" || target.kind === "index"
+    ? toMonthlyRows(rows)
+    : [];
 
 const weeklyBuyPos = calcUTBotPosition(weeklyRows, 2.0, 10);
 const monthlyBuyPos = calcUTBotPosition(monthlyRows, 2.0, 10);
@@ -5314,6 +5336,14 @@ const hourly75Support =
   const fourHourRows = toFourHourRows(hourlyRows);
   // 4Hタートル買い（✫Buy💚の絞り込み用：日足タートル＋4Hタートル＋日足Bu-OBが同時に揃うか）
   const turtleBuy4H = target.kind === "stock" ? detectTurtleBuy(fourHourRows) : false;
+  // 4PO: 4時間足で💥爆上げcombo(6シグナルのうち3つ以上+OB)とパーフェクトオーダー(20MA>75MA>200MA)が
+  // 両方成立している状態(くみちゃんが4時間足チャートで見つけた「値幅が取れるポイント」の型)
+  const fourHourMegaBreakoutBuy = target.kind === "stock" ? f_megaBreakoutBuyOnTF(fourHourRows) : false;
+  const fourHourPerfectOrderBuy = target.kind === "stock" ? detectPerfectOrderBuy(fourHourRows) : false;
+  const po4Buy = target.kind === "stock" && fourHourMegaBreakoutBuy && fourHourPerfectOrderBuy;
+  const fourHourMegaBreakoutSell = target.kind === "stock" ? f_megaBreakoutSellOnTF(fourHourRows) : false;
+  const fourHourPerfectOrderSell = target.kind === "stock" ? detectPerfectOrderSell(fourHourRows) : false;
+  const po4Sell = target.kind === "stock" && fourHourMegaBreakoutSell && fourHourPerfectOrderSell;
   // 4H 75EMA・75MAのDC履歴を確認
 const fourHourCloses = fourHourRows.map((r) => r.close);
 const fourHourEma75Series = calcEMASeries(fourHourCloses, 75);
@@ -5794,11 +5824,11 @@ const megaSellBreakoutWMFrame = !megaSellBreakoutWM
 const weeklyMegaBreakoutBuyRecent =
   target.kind === "stock" && wasMegaBreakoutWithinLastN(rows, 20, true);
 const monthlyMegaBreakoutBuyRecent =
-  target.kind === "stock" && wasMegaBreakoutWithinLastN(rows, 90, true);
+  target.kind === "stock" && wasMegaBreakoutWithinLastN(rows, 120, true);
 const weeklyMegaBreakoutSellRecent =
   target.kind === "stock" && wasMegaBreakoutWithinLastN(rows, 20, false);
 const monthlyMegaBreakoutSellRecent =
-  target.kind === "stock" && wasMegaBreakoutWithinLastN(rows, 90, false);
+  target.kind === "stock" && wasMegaBreakoutWithinLastN(rows, 120, false);
 
 // キター/キタキタ〜判定: タートル＋Bu-OB(Be-OB)が4Hと日足の両方で揃ってることが大前提。
 // そこにheartBuy(★Buy💚相当)とCorys相当(リボン収縮)がいくつ追加で揃うかで、1つでキター、2つでキタキタ〜
@@ -6312,6 +6342,8 @@ if (fxTripleBottomInfo) {
     superComboFx,
     rocketTurtleComboSellFx,
     superComboSellFx,
+    po4Buy,
+    po4Sell,
     fxWmBuy,
     fxWmBuyFrame,
     fxWmSell,
