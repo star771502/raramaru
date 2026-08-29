@@ -2353,6 +2353,9 @@ const TABS = [
   "4PO買い",
   "4PO売り",
   "FX買い(週足/月足)",
+  "貸借高値監視",
+  "🐉ドラゴン複合",
+  "売り初動",
 ];
 const DAILY_SCAN_TASK = "project-sh-daily-scan";
 
@@ -3165,6 +3168,16 @@ function detectSankuFumiage(rows, lookback = 10) {
     if (rows[i].low > rows[i - 1].high) gapCount += 1;
   }
   return gapCount >= 3;
+}
+
+// 株ドラゴンの「新高値」ランキングを参考にした新高値更新判定。
+// 直近periodBars(デフォルト250営業日≒52週)の中で、最新の終値がそれ以前の期間の最高値を上回っていたら新高値
+function detectNewHigh(rows, periodBars = 250) {
+  if (!Array.isArray(rows) || rows.length < 20) return false;
+  const n = rows.length;
+  const lookback = Math.min(periodBars, n - 1);
+  const priorHigh = Math.max(...rows.slice(Math.max(0, n - 1 - lookback), n - 1).map((r) => r.high));
+  return rows[n - 1].close > priorHigh;
 }
 
 function detectGc20_75Recent(closes, { lookback = 5 } = {}) {
@@ -5739,17 +5752,15 @@ const tonbo = detectTonbo(rows);
 const touba = detectTouba(rows);
 const sankuFumiage = detectSankuFumiage(rows);
 
-// 株ドラゴンだと1個ずつしかフィルターを組み合わせられないため、
-// 「25日線乖離プラス+75日線乖離プラス+貸借銘柄+三空踏み上げ+月足RSI80以上」を全部同時に満たす銘柄だけを出す複合タブ
+// 株ドラゴンの「75日乖離プラス→貸借銘柄→三空踏み上げ」の絞り込みページを再現した複合タブ。
+// 当初は25日乖離プラス・月足RSI80以上も条件に含めていたが、条件が厳しすぎて0件になったため、
+// 株ドラゴンの実際のページに合わせて75日乖離プラス+貸借銘柄+三空踏み上げの3条件に絞った。
 const kabudragonCombo =
   target.kind === "stock" &&
-  typeof dev25 === "number" &&
-  dev25 > 0 &&
   typeof dev75 === "number" &&
   dev75 > 0 &&
   isLendingStock(target.code) &&
-  sankuFumiage &&
-  monthlyRsi80;
+  sankuFumiage;
 
 // 💥爆上げ本命/💥暴落本命(くみちゃんの経験則v1に戻した): タートル否定・★Buy💚(heartBuy)・UTフリップ・
 // ロケット・本命(rocketTurtleCombo)・超本命(superCombo)のうち3つ以上が直近(4本以内)で点灯していて、
