@@ -2347,7 +2347,6 @@ const TARGETS = RAW_TARGETS.trim()
 
 const TABS = [
   "💥爆上げ本命",
-  "💥爆上げ本命5+",
   "💥暴落本命",
   "💥爆上げ週足",
   "💥爆上げ月足",
@@ -5783,6 +5782,19 @@ const megaBuyBreakout = target.kind === "stock" && megaBuyCount >= 3 && inBullOB
 // 既存の爆上げ本命(3個以上)はそのまま残す。
 const megaBuyBreakout5 = target.kind === "stock" && megaBuyCount >= 5 && inBullOB;
 
+// 💎爆上げ全足OB: comboが5個以上に加えて、4H・日足・週足・月足のすべてでBu-OB(Be-OB)の
+// 中にいる最上位ティア。くみちゃんの「全時間足で一致してる時が一番強い」という経験則に基づく。
+const fourHourOB = target.kind === "stock" ? detectOrderBlock(fourHourRows) : { inBullOB: false, inBearOB: false };
+const weeklyOBAllTF = target.kind === "stock" ? detectOrderBlock(weeklyRows) : { inBullOB: false, inBearOB: false };
+const monthlyOBAllTF = target.kind === "stock" ? detectOrderBlock(monthlyRows) : { inBullOB: false, inBearOB: false };
+const megaBuyAllTFOB =
+  target.kind === "stock" &&
+  megaBuyCount >= 5 &&
+  inBullOB &&
+  fourHourOB.inBullOB &&
+  weeklyOBAllTF.inBullOB &&
+  monthlyOBAllTF.inBullOB;
+
 const megaSellCount =
   (turtleBuyDeniedRecent ? 1 : 0) +
   (heartSell ? 1 : 0) +
@@ -6365,7 +6377,9 @@ if (fxTripleBottomInfo) {
     fxWmSell,
     fxWmSellFrame,
     megaBuyBreakout,
+    megaBuyCount,
     megaBuyBreakout5,
+    megaBuyAllTFOB,
     megaSellBreakout,
     megaBuyBreakoutWM,
     megaSellBreakoutWM,
