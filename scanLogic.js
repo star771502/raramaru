@@ -2347,6 +2347,7 @@ const TARGETS = RAW_TARGETS.trim()
 
 const TABS = [
   "💥爆上げ本命",
+  "💥爆上げ本命5+",
   "💥暴落本命",
   "💥爆上げ週足",
   "💥爆上げ月足",
@@ -5777,6 +5778,10 @@ const megaBuyCount =
   (rocketTurtleCombo ? 1 : 0) +
   (superCombo ? 1 : 0);
 const megaBuyBreakout = target.kind === "stock" && megaBuyCount >= 3 && inBullOB;
+// 💥爆上げ本命5+: くみちゃんの経験則により、Bu-OB(Be-OB)の中でタートル否定・heartBuy相当・
+// UTフリップ・ロケット・本命・超本命のうち5個以上が揃った状態を、より厳選した上位ティアとして追加。
+// 既存の爆上げ本命(3個以上)はそのまま残す。
+const megaBuyBreakout5 = target.kind === "stock" && megaBuyCount >= 5 && inBullOB;
 
 const megaSellCount =
   (turtleBuyDeniedRecent ? 1 : 0) +
@@ -6360,6 +6365,7 @@ if (fxTripleBottomInfo) {
     fxWmSell,
     fxWmSellFrame,
     megaBuyBreakout,
+    megaBuyBreakout5,
     megaSellBreakout,
     megaBuyBreakoutWM,
     megaSellBreakoutWM,
