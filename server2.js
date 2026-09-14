@@ -24,8 +24,17 @@ let latestResult = {
   error: null,
 };
 
+// ★追加：スキャン実行中フラグ（二重起動防止）
+let scanning = false;
+
 // スキャンを実行して結果を保存
 async function doScan() {
+  // ★追加：既に実行中なら何もしない
+  if (scanning) {
+    console.log('[SCAN] 既に実行中。スキップ');
+    return;
+  }
+  scanning = true;
   try {
     console.log('[SCAN] 開始...');
     const { results } = await scanTargets({});
@@ -57,6 +66,9 @@ async function doScan() {
   } catch (err) {
     console.error('[SCAN] エラー:', err.message);
     latestResult.error = err.message;
+  } finally {
+    // ★追加：必ずフラグを解除
+    scanning = false;
   }
 }
 
@@ -95,12 +107,23 @@ async function loadData(force) {
     const url = force ? '/api/scan?force=1' : '/api/scan';
     const res = await fetch(url);
     const data = await res.json();
+
     document.getElementById('updated').textContent =
       data.updatedAt ? '更新: ' + new Date(data.updatedAt).toLocaleString('ja-JP') : '未更新';
+
     if (data.error) { list.innerHTML = '<div class="empty">エラー: ' + data.error + '</div>'; return; }
+
+    // ★追加：スキャン中なら5秒後に再取得
+    if (data.scanning) {
+      list.innerHTML = '<div class="empty">スキャン中...（完了まで自動更新）</div>';
+      setTimeout(() => loadData(false), 5000);
+      return;
+    }
+
     if (!data.symbols || data.symbols.length === 0) {
       list.innerHTML = '<div class="empty">該当銘柄なし</div>'; return;
     }
+
     list.innerHTML = data.symbols.map(s => {
       const cls = (s.change || 0) >= 0 ? 'up' : 'down';
       const sign = (s.change || 0) >= 0 ? '+' : '';
@@ -122,15 +145,22 @@ loadData(false);
 });
 
 // ---- スキャンAPI ----
-app.get('/api/scan', async (req, res) => {
+app.get('/api/scan', (req, res) => {
   const force = req.query.force === '1';
   // 結果が古い、または強制実行なら再スキャン
   const stale = !latestResult.updatedAt ||
     (Date.now() - new Date(latestResult.updatedAt).getTime()) > CONFIG.SCAN_INTERVAL_HOURS * 3600 * 1000;
-  if (force || stale) {
-    await doScan();
+
+  // ★変更：待たずにスキャン開始（即座に応答する）
+  if ((force || stale) && !scanning) {
+    doScan();
   }
-  res.json(latestResult);
+
+  // ★変更：現在の状態を即返す
+  res.json({
+    ...latestResult,
+    scanning,
+  });
 });
 
 // ---- 起動 ----
