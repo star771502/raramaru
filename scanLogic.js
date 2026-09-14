@@ -5,7 +5,7 @@ const BATCH_DELAY_MS = 350;
 const LAST_SCAN_KEY = "sh54_last_scan_at";
 const AUTO_SCAN_SKIP_MINUTES = 10;
 const DISPLAY_LIMIT = 48;
-const TARGET_PRICE_LIMIT = 2000;
+const TARGET_PRICE_LIMIT = 500;
 
 const RAW_TARGETS = `
 USDJPY=X|USD/JPY|forex
