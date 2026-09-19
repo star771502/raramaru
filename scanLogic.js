@@ -1,11 +1,11 @@
-﻿const MAX_PRICE = 2000;
+﻿const MAX_PRICE = 1000;
 const MIN_DISPLAY_SCORE = 58;
 const BATCH_SIZE = 10;
 const BATCH_DELAY_MS = 350;
-const LAST_SCAN_KEY = "sh54_last_scan_at";
+const LAST_SCAN_KEY = "bakuage_syuu_tsuki_last_scan_at";
 const AUTO_SCAN_SKIP_MINUTES = 10;
 const DISPLAY_LIMIT = 48;
-const TARGET_PRICE_LIMIT = 2000;
+const TARGET_PRICE_LIMIT = 1000;
 
 const RAW_TARGETS = `
 USDJPY=X|USD/JPY|forex
@@ -2349,7 +2349,7 @@ const TABS = [
   "💥爆上げ本命",
   "💥暴落本命",
   "💥爆上げ週足",
-  "💥爆上げ月足",
+  "💥爆上げ週月",
   "4PO買い",
   "4PO売り",
   "FX買い(週足/月足)",
@@ -5846,7 +5846,7 @@ const megaSellBreakoutWMFrame = !megaSellBreakoutWM
   ? "週"
   : "月";
 
-// 💥爆上げ月足/週足: 月足/週足のローソク足で再計算するのではなく、実際にチャートに表示される
+// 💥爆上げ週月/週足: 月足/週足のローソク足で再計算するのではなく、実際にチャートに表示される
 // 「本物の日足の爆上げ本命combo」(megaBuyCount>=3+OB、爆上げ本命と全く同一の式)が、
 // 直近の週単位/月単位の範囲内で一度でも成立していたかを見る(日足rowsに対して判定期間だけ延ばす)。
 const weeklyMegaBreakoutBuyRecent =
