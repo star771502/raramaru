@@ -80,7 +80,7 @@ function pickTurtleHonmeiBuy23(results) {
       if (x.megaSellBreakoutWM) labels.push(`💥暴落週月(${x.megaSellBreakoutWMFrame})`);
       if (x.megaBuyBreakout) labels.push("💥爆上げ本命");
       if (x.megaSellBreakout) labels.push("💥暴落本命");
-      if (x.monthlyMegaBreakoutBuyRecent) labels.push("💥爆上げ週月");
+      if (x.monthlyMegaBreakoutBuyRecent) labels.push("💥爆上げ月足");
       if (x.weeklyMegaBreakoutBuyRecent) labels.push("💥爆上げ週足");
       if (x.kabudragonCombo) labels.push("🐉ドラゴン複合");
       if (x.superCombo) labels.push("👑超本命");
