@@ -2348,8 +2348,8 @@ const TARGETS = RAW_TARGETS.trim()
 const TABS = [
   "💥爆上げ本命",
   "💥暴落本命",
-  "💥爆上げ週足",
   "💥爆上げ週月",
+ 
   "4PO買い",
   "4PO売り",
   "FX買い(週足/月足)",
@@ -2651,6 +2651,7 @@ function detectFibBounceFromBottom(rows, { lookback = 500, minDeclinePct = 60 } 
   }
 
   // 23.6%を経験した後、再び安値付近まで戻ってきているか(=押し目の再テスト)
+  
   const retestTolerance = lowPrice * 1.1;
   const isRetestingLow = touchedFib236 && lastClose <= retestTolerance;
 
