@@ -1,11 +1,11 @@
-﻿const MAX_PRICE = 2000;
+﻿const MAX_PRICE = 1000;
 const MIN_DISPLAY_SCORE = 58;
 const BATCH_SIZE = 10;
 const BATCH_DELAY_MS = 350;
 const LAST_SCAN_KEY = "sh54_last_scan_at";
 const AUTO_SCAN_SKIP_MINUTES = 10;
 const DISPLAY_LIMIT = 48;
-const TARGET_PRICE_LIMIT = 2000;
+const TARGET_PRICE_LIMIT = 1000;
 
 const RAW_TARGETS = `
 USDJPY=X|USD/JPY|forex
