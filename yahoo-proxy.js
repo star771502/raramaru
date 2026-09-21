@@ -105,7 +105,7 @@ function pickTurtleHonmeiBuy23(results) {
         megaSellBreakoutWM: Boolean(x.megaSellBreakoutWM), // 💥暴落週月
         megaBuyBreakoutWMFrame: x.megaBuyBreakoutWMFrame || null,
         megaSellBreakoutWMFrame: x.megaSellBreakoutWMFrame || null,
-        monthlyMegaBreakoutBuyRecent: Boolean(x.monthlyMegaBreakoutBuyRecent), // 💥爆上げ月足
+        monthlyMegaBreakoutBuyRecent: Boolean(x.monthlyMegaBreakoutBuyRecent), // 💥爆上げ週月
         weeklyMegaBreakoutBuyRecent: Boolean(x.weeklyMegaBreakoutBuyRecent), // 💥爆上げ週足
         kabudragonCombo: Boolean(x.kabudragonCombo), // 🐉ドラゴン複合
       };
