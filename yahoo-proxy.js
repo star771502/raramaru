@@ -45,7 +45,7 @@ try {
 try {
   if (fs.existsSync(HISTORY_FILE)) {
     const savedHistory = JSON.parse(fs.readFileSync(HISTORY_FILE, "utf8"));
-    if (Array.isArray(savedHistory)) {
+   if (Array.isArray(savedHistory)) {
       scanHistory = savedHistory;
     }
   }
@@ -105,14 +105,14 @@ function pickTurtleHonmeiBuy23(results) {
         megaSellBreakoutWM: Boolean(x.megaSellBreakoutWM), // 💥暴落週月
         megaBuyBreakoutWMFrame: x.megaBuyBreakoutWMFrame || null,
         megaSellBreakoutWMFrame: x.megaSellBreakoutWMFrame || null,
-        monthlyMegaBreakoutBuyRecent: Boolean(x.monthlyMegaBreakoutBuyRecent), // 💥爆上げ週月
+        monthlyMegaBreakoutBuyRecent: Boolean(x.monthlyMegaBreakoutBuyRecent), // 💥爆上げ月足
         weeklyMegaBreakoutBuyRecent: Boolean(x.weeklyMegaBreakoutBuyRecent), // 💥爆上げ週足
         kabudragonCombo: Boolean(x.kabudragonCombo), // 🐉ドラゴン複合
       };
     });
 
     
-    .filter(
+    const fxPicks = results.filter(
       (x) =>
         (x.kind === "forex" || x.kind === "crypto" || x.kind === "index") &&
         x.direction !== "fail"

@@ -2522,7 +2522,7 @@ function calcATR(rows, period = 14) {
 }
 
 // =====================
-// UTボット（TradingViewのPineロジックをJSで再現）
+// UTボット（TradingViewのPineロジックをJSで再現）weeklyComboBuy
 // 追加するだけで、まだどこからも呼び出しません
 // =====================
 function calcATRSeriesWilder(rows, period = 10) {
@@ -5813,84 +5813,6 @@ function f_weeklyMonthlyComboBuy(tfRows) {
   const rocketRecent = Boolean(findRocketBuy(tfRows, 4));
   const turtleObRecent = wasTrueRecently(tfRows, detectTurtleBuy, 4) && detectOrderBlock(tfRows).inBullOB;
   return rocketRecent && turtleObRecent;
-}
-function f_weeklyMonthlyComboSell(tfRows) {
-  if (target.kind !== "stock" || !Array.isArray(tfRows) || tfRows.length < 40) return false;
-  const rocketRecent = Boolean(findRocketSell(tfRows, 4));
-  const turtleObRecent = wasTrueRecently(tfRows, detectTurtleSell, 4) && detectOrderBlock(tfRows).inBearOB;
-  return rocketRecent && turtleObRecent;
-}
-
-const weeklyComboBuy = f_weeklyMonthlyComboBuy(weeklyRows);
-const monthlyComboBuy = f_weeklyMonthlyComboBuy(monthlyRows);
-const dailyBullishSignal = rocketTurtleCombo || superCombo || heartBuy;
-// 週足・月足どちらか一方でも実comboが成立してれば対象にする(両方必須だとほぼ0件になるため)
-const megaBuyBreakoutWM = target.kind === "stock" && (weeklyComboBuy || monthlyComboBuy) && dailyBullishSignal;
-// どちらのフレームで成立したかを見た目で分かるようにラベル化(週/月/週+月)
-const megaBuyBreakoutWMFrame = !megaBuyBreakoutWM
-  ? null
-  : weeklyComboBuy && monthlyComboBuy
-  ? "週+月"
-  : weeklyComboBuy
-  ? "週"
-  : "月";
-
-const weeklyComboSell = f_weeklyMonthlyComboSell(weeklyRows);
-const monthlyComboSell = f_weeklyMonthlyComboSell(monthlyRows);
-const dailyBearishSignal = rocketTurtleComboSell || superComboSell || heartSell;
-const megaSellBreakoutWM = target.kind === "stock" && (weeklyComboSell || monthlyComboSell) && dailyBearishSignal;
-const megaSellBreakoutWMFrame = !megaSellBreakoutWM
-  ? null
-  : weeklyComboSell && monthlyComboSell
-  ? "週+月"
-  : weeklyComboSell
-  ? "週"
-  : "月";
-
-// 💥爆上げ月足/週足: 月足/週足のローソク足で再計算するのではなく、実際にチャートに表示される
-// 「本物の日足の爆上げ本命combo」(megaBuyCount>=3+OB、爆上げ本命と全く同一の式)が、
-// 直近の週単位/月単位の範囲内で一度でも成立していたかを見る(日足rowsに対して判定期間だけ延ばす)。
-const weeklyMegaBreakoutBuyRecent =
-  target.kind === "stock" && wasMegaBreakoutWithinLastN(rows, 20, true);
-const monthlyMegaBreakoutBuyRecent =
-  target.kind === "stock" && wasMegaBreakoutWithinLastN(rows, 120, true);
-const weeklyMegaBreakoutSellRecent =
-  target.kind === "stock" && wasMegaBreakoutWithinLastN(rows, 20, false);
-const monthlyMegaBreakoutSellRecent =
-  target.kind === "stock" && wasMegaBreakoutWithinLastN(rows, 120, false);
-
-// キター/キタキタ〜判定: タートル＋Bu-OB(Be-OB)が4Hと日足の両方で揃ってることが大前提。
-// そこにheartBuy(★Buy💚相当)とCorys相当(リボン収縮)がいくつ追加で揃うかで、1つでキター、2つでキタキタ〜
-const buyBaseGate =
-  target.kind === "stock" &&
-  checkTimeframeTurtleOB(fourHourRows, false) &&
-  checkTimeframeTurtleOB(rows, false);
-const buyAddCount = (heartBuy ? 1 : 0) + (ribbonExpansion ? 1 : 0);
-const honmeiBuy = target.kind === "stock" && buyBaseGate && buyAddCount >= 1;
-const superHonmeiBuy = target.kind === "stock" && buyBaseGate && buyAddCount === 2;
-
-const sellBaseGate =
-  target.kind === "stock" &&
-  checkTimeframeTurtleOB(fourHourRows, true) &&
-  checkTimeframeTurtleOB(rows, true);
-const sellAddCount = (heartSell ? 1 : 0) + (ribbonContraction ? 1 : 0);
-const honmeiSell = target.kind === "stock" && sellBaseGate && sellAddCount >= 1;
-const superHonmeiSell = target.kind === "stock" && sellBaseGate && sellAddCount === 2;
-
-const b3OversoldLine = 30;
-const b3RecoverLine = 35;
-const b3Lookback = Math.min(60, closes.length - 15);
-
-const recentRsiForB3 = [];
-
-for (let i = 0; i < b3Lookback; i++) {
-  const end = closes.length - i;
-  const start = Math.max(0, end - 20);
-  const r = calcRSI(closes.slice(start, end), 14);
-
-  if (r !== null && Number.isFinite(r)) {
-    recentRsiForB3.push(r);
-  }
 }
 
 const hadB3Rsi30 = recentRsiForB3.some(v => v <= b3OversoldLine);
