@@ -55,6 +55,7 @@ try {
 
 // アプリのタブ定義と完全に同じ条件で株のcombo系タブに該当するものだけ抜き出す
 // (タブ側のfilter条件を変えたらここも合わせて直すこと)
+// ※爆上げ月足/週足(単体)は対象外にし、本物の「爆上げ週月」(megaBuyBreakoutWM)だけを残す
 function pickTurtleHonmeiBuy23(results) {
   const stockPicks = results
     .filter((x) => x.kind === "stock" && x.direction !== "fail")
@@ -69,8 +70,6 @@ function pickTurtleHonmeiBuy23(results) {
         x.megaSellBreakout === true ||
         x.megaBuyBreakoutWM === true ||
         x.megaSellBreakoutWM === true ||
-        x.monthlyMegaBreakoutBuyRecent === true ||
-        x.weeklyMegaBreakoutBuyRecent === true ||
         x.kabudragonCombo === true
     )
     .map((x) => {
@@ -80,7 +79,6 @@ function pickTurtleHonmeiBuy23(results) {
       if (x.megaSellBreakoutWM) labels.push(`💥暴落週月(${x.megaSellBreakoutWMFrame})`);
       if (x.megaBuyBreakout) labels.push("💥爆上げ本命");
       if (x.megaSellBreakout) labels.push("💥暴落本命");
-    if (x.monthlyMegaBreakoutBuyRecent || x.weeklyMegaBreakoutBuyRecent) labels.push("💥爆上げ週月");
       if (x.kabudragonCombo) labels.push("🐉ドラゴン複合");
       if (x.superCombo) labels.push("👑超本命");
       if (x.rocketTurtleCombo) labels.push("🚀タートル速攻");
@@ -105,8 +103,6 @@ function pickTurtleHonmeiBuy23(results) {
         megaSellBreakoutWM: Boolean(x.megaSellBreakoutWM), // 💥暴落週月
         megaBuyBreakoutWMFrame: x.megaBuyBreakoutWMFrame || null,
         megaSellBreakoutWMFrame: x.megaSellBreakoutWMFrame || null,
-        monthlyMegaBreakoutBuyRecent: Boolean(x.monthlyMegaBreakoutBuyRecent), // 💥爆上げ月足
-        weeklyMegaBreakoutBuyRecent: Boolean(x.weeklyMegaBreakoutBuyRecent), // 💥爆上げ週足
         kabudragonCombo: Boolean(x.kabudragonCombo), // 🐉ドラゴン複合
       };
     });
