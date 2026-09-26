@@ -5811,10 +5811,11 @@ const megaSellBreakout = target.kind === "stock" && megaSellCount >= 3 && inBear
 function f_weeklyMonthlyComboBuy(tfRows) {
   if (target.kind !== "stock" || !Array.isArray(tfRows) || tfRows.length < 40) return false;
   const rocketRecent = Boolean(findRocketBuy(tfRows, 4));
-  const turtleObRecent = wasTrueRecently(tfRows, detectTurtleBuy, 4) && detectOrderBlock(tfRows).inBullOB;
-  return rocketRecent && turtleObRecent;
+  const turtleRecent = wasTrueRecently(tfRows, detectTurtleBuy, 4);
+  const inBullOB = detectOrderBlock(tfRows).inBullOB;
+  // Bu-OBは必須。ロケットかタートルのどちらかが出ていればOK(前回より少し緩く)
+  return inBullOB && (rocketRecent || turtleRecent);
 }
-
 const hadB3Rsi30 = recentRsiForB3.some(v => v <= b3OversoldLine);
 
 const b3RsiRecovered =
