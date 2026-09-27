@@ -5830,7 +5830,7 @@ function f_weeklyMonthlyComboBuy(tfRows) {
 }
 
 
-const hadB3Rsi30 = recentRsiForB3.some(v => v <= b3OversoldLine);
+const hadB3Rsi30 = recentRsiForB3.some(v => v <= 30);
 
 const b3RsiRecovered =
   hadB3Rsi30 &&
