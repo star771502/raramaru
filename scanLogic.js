@@ -2340,16 +2340,15 @@ const TARGETS = RAW_TARGETS.trim()
   .map((line) => line.trim())
   .filter((line) => line.length > 0)
   .map((line) => {
-    const [code, name, kind] = line.split("|");
+    const parts = line.split("|");
     return { 
-      code: (code || "").trim(), 
-      name: (name || "").trim(), 
-      kind: (kind || "").trim() 
+      code: (parts[0] || "").trim(), 
+      name: (parts[1] || "").trim(), 
+      kind: (parts[2] || "").trim() 
     };
   })
   .filter((x, i, arr) => arr.findIndex((y) => y.code === x.code) === i)
   .filter((target) => target.kind !== "stock" || target.code !== "");
-
 const TABS = [
   "💥爆上げ本命",
   "💥暴落本命",
