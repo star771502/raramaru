@@ -5821,7 +5821,6 @@ function f_weeklyMonthlyComboBuy(tfRows) {
   return inBullOB && (rocketRecent || turtleRecent);
 }
 
-const recentRsiForB3 = Array.isArray(rsiRows) ? rsiRows.map(r => r.rsi) : [];
 
 const hadB3Rsi30 = recentRsiForB3.some(v => v <= b3OversoldLine);
 
