@@ -2326,7 +2326,7 @@ CL=F|WTI原油|index
 9895|コンセック|stock
 9896|ＪＫホールディングス|stock
 9928|ミロク情報サービス|stock
-9932|杉本商事|stock
+9932|杉本商事|stockstock
 9941|太洋物産|stock
 9946|ミニストップ|stock
 9959|アシードホールディングス|stock
@@ -2335,6 +2335,7 @@ CL=F|WTI原油|index
 9991|ジェコス|stock
 9993|ヤマザワ|stock
 `;
+
 const TARGETS = RAW_TARGETS.trim()
   .split("\n")
   .map((line) => line.trim())
@@ -2349,6 +2350,7 @@ const TARGETS = RAW_TARGETS.trim()
   })
   .filter((x, i, arr) => arr.findIndex((y) => y.code === x.code) === i)
   .filter((target) => target.kind !== "stock" || target.code !== "");
+
 const TABS = [
   "💥爆上げ本命",
   "💥暴落本命",
@@ -5504,6 +5506,12 @@ const rsiPrev = calcRSI(closes.slice(-21, -1), 14);
   const rsiUp = rsiNow !== null && rsiPrev !== null && rsiNow > rsiPrev;
   const rsiDown = rsiNow !== null && rsiPrev !== null && rsiNow < rsiPrev;
 // B3用：直近60本のどこかでRSI30以下に到達したか確認
+const recentRsiForB3 = [];
+
+for (let i = Math.max(14, closes.length - 60); i < closes.length; i++) {
+  const rsi = calcRSI(closes.slice(i - 14, i + 1), 14);
+  if (rsi !== null) recentRsiForB3.push(rsi);
+}
 // =====================
 // ★Buy💚 / ★Sell❤️（TradingView Strong相当）
 // =====================
