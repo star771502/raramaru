@@ -6470,11 +6470,32 @@ async function scanTargets({ onProgress } = {}) {
     BATCH_SIZE,
     async (target) => {
       // 日足と4H用の1時間足を並列取得(直列だと1銘柄あたりの待ち時間が倍になっていた)
-      const [rows, hourlyRows] = await Promise.all([
-        fetchRows(target),
-        target.kind === "stock" ? fetchHourlyFromYahoo(getYahooSymbol(target)) : Promise.resolve([]),
-      ]);
-      return judgeSignal(target, rows, hourlyRows);
+   const [rowsResult, hourlyResult] = await Promise.allSettled([
+  fetchRows(target),
+  target.kind === "stock"
+    ? fetchHourlyFromYahoo(getYahooSymbol(target))
+    : Promise.resolve([]),
+]);
+
+const rows = rowsResult.status === "fulfilled" ? rowsResult.value : [];
+const hourlyRows =
+  hourlyResult.status === "fulfilled" ? hourlyResult.value : [];
+
+if (rowsResult.status === "rejected") {
+  console.warn(
+    `[調査ログ] ${target.symbol || target.code || ""} 日足取得失敗:`,
+    rowsResult.reason?.message || rowsResult.reason
+  );
+}
+
+if (hourlyResult.status === "rejected") {
+  console.warn(
+    `[調査ログ] ${target.symbol || target.code || ""} 1H取得失敗:`,
+    hourlyResult.reason?.message || hourlyResult.reason
+  );
+}
+
+return judgeSignal(target, rows, hourlyRows);
     },
     (done, total) => {
       onProgress?.(done, total);
