@@ -2335,12 +2335,17 @@ CL=F|WTI原油|index
 9991|ジェコス|stock
 9993|ヤマザワ|stock
 `;
-
 const TARGETS = RAW_TARGETS.trim()
   .split("\n")
+  .map((line) => line.trim())
+  .filter((line) => line.length > 0)
   .map((line) => {
     const [code, name, kind] = line.split("|");
-    return { code: code.trim(), name: name.trim(), kind: kind.trim() };
+    return { 
+      code: (code || "").trim(), 
+      name: (name || "").trim(), 
+      kind: (kind || "").trim() 
+    };
   })
   .filter((x, i, arr) => arr.findIndex((y) => y.code === x.code) === i)
   .filter((target) => target.kind !== "stock" || target.code !== "");
