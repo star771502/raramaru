@@ -42,7 +42,7 @@ CL=F|WTI原油|index
 1491|中外鉱業|stock
 1514|住石HD|stock
 1518|三井松島HD|stock
-1757|創建エース|stock
+
 1783|fantasista|stock
 1844|大盛工業|stock
 1850|南海辰村建設|stock
@@ -151,7 +151,7 @@ CL=F|WTI原油|index
 4165|プレイド|stock
 4167|ココペリ|stock
 4168|ヤプリ|stock
-4173|WACUL|stock
+
 4176|ココナラ|stock
 4179|ジーネクスト|stock
 4192|スパイダープラス|stock
@@ -165,7 +165,7 @@ CL=F|WTI原油|index
 4370|モビルス|stock
 4375|セーフィー|stock
 4382|HEROZ|stock
-4384|ラクスル|stock
+
 4385|メルカリ|stock
 4393|バンクオブイノベ|stock
 4412|サイエンスアーツ|stock
@@ -189,7 +189,7 @@ CL=F|WTI原油|index
 4563|アンジェス|stock
 4564|オンコセラピー|stock
 4565|そーせいG|stock
-4566|LTTバイオ|stock
+
 4568|第一三共|stock
 4571|NANO MRNA|stock
 4572|カルナバイオ|stock
@@ -237,7 +237,7 @@ CL=F|WTI原油|index
 5255|モンスターラボ|stock
 5258|TMN|stock
 5574|ABEJA|stock
-5577|アイデミー|stock
+
 5582|グリッド|stock
 5586|Laboro.AI|stock
 5595|QPS研究所|stock
