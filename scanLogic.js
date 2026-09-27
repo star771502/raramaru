@@ -5816,7 +5816,9 @@ function f_weeklyMonthlyComboBuy(tfRows) {
   // Bu-OBは必須。ロケットかタートルのどちらかが出ていればOK(前回より少し緩く)
   return inBullOB && (rocketRecent || turtleRecent);
 }
+
 const recentRsiForB3 = Array.isArray(rsiRows) ? rsiRows.map(r => r.rsi) : [];
+
 const hadB3Rsi30 = recentRsiForB3.some(v => v <= b3OversoldLine);
 
 const b3RsiRecovered =
