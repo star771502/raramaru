@@ -1,7 +1,7 @@
 const MAX_PRICE = 1000;
 const MIN_DISPLAY_SCORE = 58;
 const BATCH_SIZE = 10;
-const BATCH_DELAY_MS = 350;
+const BATCH_DELAY_MS = 100;
 const LAST_SCAN_KEY = "sh54_last_scan_at";
 const AUTO_SCAN_SKIP_MINUTES = 10;
 const DISPLAY_LIMIT = 48;
@@ -6280,10 +6280,7 @@ if (fxTripleBottomInfo) {
     isLending: target.kind === "stock" && isLendingStock(target.code),
     inBullOB,
     inBearOB,
-    honmeiBuy,
-    honmeiSell,
-    superHonmeiBuy,
-    superHonmeiSell,
+   
     ribbonContraction,
     fibMatch: fibBounce.fibMatch,
     fibDeclinePct: fibBounce.fibDeclinePct ?? null,
