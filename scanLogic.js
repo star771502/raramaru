@@ -1,6 +1,6 @@
 const MAX_PRICE = 1000;
 const MIN_DISPLAY_SCORE = 58;
-const BATCH_SIZE = 25;
+const BATCH_SIZE = 10;
 const BATCH_DELAY_MS = 50;
 const LAST_SCAN_KEY = "sh54_last_scan_at";
 const AUTO_SCAN_SKIP_MINUTES = 10;
@@ -3662,7 +3662,7 @@ function getProxyUrl(url, attempt = 1) {
         const interval = yahooUrl.searchParams.get("interval") || "1d";
 
         return (
-          `https://raramaru.onrender.com/chart?symbol=${encodeURIComponent(symbol)}` +
+         `http://localhost:3002/chart?symbol=${encodeURIComponent(symbol)}` +
           `&range=${encodeURIComponent(range)}` +
           `&interval=${encodeURIComponent(interval)}`
         );
@@ -3739,7 +3739,7 @@ async function fetchFromStooq(code) {
 
 async function fetchFromYahoo(symbol) {
   try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=10y&interval=1d`;
+   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=5y&interval=1d`;
     const res = await safeFetch(url, {}, 2);
     const json = await res.json();
 
