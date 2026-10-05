@@ -5086,7 +5086,10 @@ const weeklyRows =
   target.kind === "stock" || target.kind === "forex" || target.kind === "crypto" || target.kind === "index"
     ? toWeeklyRows(rows)
     : [];
-
+const confirmedWeeklyRows =
+  weeklyRows.length > 1
+    ? weeklyRows.slice(0, -1)
+    : [];
 const monthlyRows =
   target.kind === "stock" || target.kind === "forex" || target.kind === "crypto" || target.kind === "index"
     ? toMonthlyRows(rows)
@@ -5146,7 +5149,7 @@ const { inBullOB, inBearOB } = target.kind === "stock" ? detectOrderBlock(rows) 
 const fibBounce = target.kind === "stock" ? detectFibBounceFromBottom(monthlyRows) : { fibMatch: false };
   const closes = rows.map((r) => r.close);
   const bbUpper = calcBollingerUpper(closes, 20, 2);
-const weeklyCloses = weeklyRows.map((r) => r.close);
+const weeklyCloses = confirmedWeeklyRows.map((r) => r.close);
 const weeklyRsi = calcRSI(weeklyCloses, 14);
 const weeklyRsi90 = weeklyRsi !== null && weeklyRsi >= 90;
 const monthlyClosesForRsi = monthlyRows.map((r) => r.close);
@@ -5829,7 +5832,21 @@ function f_weeklyMonthlyComboBuy(tfRows) {
   return inBullOB && (rocketRecent || turtleRecent);
 }
 
+// 💥爆上げ週月：弱い状態から強くなり始めた初動を拾う
+// ロック済みの「週足MACD△ → 週足RSI△」を必須条件として使用。
+// そこに日足Buyを合わせ、「すでに強くなり切った銘柄」ではなく初動を狙う。
 
+const weeklyMegaBreakoutBuyRecent =
+  target.kind === "stock" &&
+  weeklyMacdRsiBuyGate &&
+  heartBuy;
+
+// 月足側：週足の初動確認 + 月足の直近Buy + 日足Buy
+const monthlyMegaBreakoutBuyRecent =
+  target.kind === "stock" &&
+  weeklyMacdRsiBuyGate &&
+  monthlyBuyRecent &&
+  heartBuy;
 const hadB3Rsi30 = recentRsiForB3.some(v => v <= 30);
 
 const b3RsiRecovered =
