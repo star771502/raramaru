@@ -2462,7 +2462,7 @@ function calcRSI(closes, period = 14) {
   let avgGain = 0;
   let avgLoss = 0;
 
-  for (let i = 1; i <= period; i++) {
+ function for (let i = 1; i <= period; i++) {
     const diff = closes[i] - closes[i - 1];
     if (diff >= 0) avgGain += diff;
     else avgLoss += Math.abs(diff);
@@ -5836,17 +5836,21 @@ function f_weeklyMonthlyComboBuy(tfRows) {
 // ロック済みの「週足MACD△ → 週足RSI△」を必須条件として使用。
 // そこに日足Buyを合わせ、「すでに強くなり切った銘柄」ではなく初動を狙う。
 
+const dailyMa20_75GC = detectMa20_75GC(rows, 4);
+
 const weeklyMegaBreakoutBuyRecent =
   target.kind === "stock" &&
   weeklyMacdRsiBuyGate &&
-  heartBuy;
+  heartBuy &&
+  dailyMa20_75GC;
 
-// 月足側：週足の初動確認 + 月足の直近Buy + 日足Buy
+// 月足側：週足の初動確認 + 月足の直近Buy + 日足Buy + 日足20・75GC
 const monthlyMegaBreakoutBuyRecent =
   target.kind === "stock" &&
   weeklyMacdRsiBuyGate &&
   monthlyBuyRecent &&
-  heartBuy;
+  heartBuy &&
+  dailyMa20_75GC;
 const hadB3Rsi30 = recentRsiForB3.some(v => v <= 30);
 
 const b3RsiRecovered =
